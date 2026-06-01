@@ -53,23 +53,28 @@ Click the **Gear Icon (⚙)** to customize your workspace environment:
 | **Editor Typography** | Adjustable font size via slider (10px – 24px) |
 
 ---
-NEW:
+MASSIVE UPDATE:
 
-- Split Viewer
-- Faster autosave
-- Bug fixes
+•  Split Viewer
+•  Faster autosave
+•  Bug fixes
+•  Added optimize all
+•  Added gcsim auto installer and updater
+•  Fixed order
+•  Added ability to run simulations/optimizations in parallel
+•  Added ability to see last dps simulated of that config
+•  Added linux/mac support
+•  Updated how to use
 
 PLANNED:
 
-- KQMs checker
-- Enka UID fetcher
-- Automatic error checker (like in the gcsim web editor)
-- Optimize all function
-- Character build graphics
-- .GOOD file support for builds
-- Config rearranger
-- Split view partition adjuster (so we can make one side bigger than the other)
-Copy the selected config and make the first character get a constellation  until c6
+•  KQMs checker
+•  Enka UID fetcher
+•  Automatic error checker (like in the gcsim web editor)
+•  Character build graphics
+•  .GOOD file support for builds
+•  Split view partition adjuster (so we can make one side bigger than the other)
+•  Copy the selected config and set the first character to C6
 
 ## 💾 Notes
 
