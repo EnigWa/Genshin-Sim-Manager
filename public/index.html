@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genshin Sim Manager</title>
+    <style>
+        /* ========== CSS VARIABLES / THEMING ========== */
+        :root {
+            /* Default Dark background theme */
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252526;
+            --bg-tertiary: #2d2d2d;
+            --bg-hover: #2d2d2d;
+            --bg-active: #094771;
+            --bg-editor: #1e1e1e;
+            --bg-modal: #252526;
+            --bg-input: #333;
+            --bg-button: #333;
+            --bg-button-hover: #444;
+            --bg-btn-primary: #0e639c;
+            --bg-btn-primary-hover: #1177bb;
+            --bg-btn-danger: #8b3a3a;
+            --bg-btn-danger-hover: #a33;
+            --bg-btn-opt: #2d6a2d;
+            --bg-btn-opt-hover: #3a8a3a;
+            --bg-toast: #333;
+            --bg-scrollbar-track: #1e1e1e;
+            --bg-scrollbar-thumb: #555;
+            --bg-overlay: rgba(0,0,0,0.6);
+
+            --border-color: #3c3c3c;
+            --border-input: #4a4a4a;
+            --border-active: #0e639c;
+
+            --caret-color: #fff;
+            --icon-color: #888;
+            --icon-hover: #fff;
+            --toast-success-border: #4ec9b0;
+            --toast-error-border: #f48771;
+            --toast-info-border: #0e639c;
+            --scrollbar-radius: 3px;
+        }
+
+        /* Background themes */
+        [data-bg="pitch-black"] {
+            --bg-primary: #000000;
+            --bg-secondary: #0a0a0a;
+            --bg-tertiary: #111111;
+            --bg-hover: #1a1a1a;
+            --bg-active: #004080;
+            --bg-editor: #000000;
+            --bg-modal: #0a0a0a;
+            --bg-input: #1a1a1a;
+            --bg-button: #1a1a1a;
+            --bg-button-hover: #2a2a2a;
+            --bg-btn-primary: #004080;
+            --bg-btn-primary-hover: #0055aa;
+            --bg-btn-danger: #6b1a1a;
+            --bg-btn-danger-hover: #8a2222;
+            --bg-btn-opt: #1a4a1a;
+            --bg-btn-opt-hover: #2a6a2a;
+            --bg-toast: #111;
+            --bg-scrollbar-track: #000;
+            --bg-scrollbar-thumb: #333;
+            --bg-overlay: rgba(0,0,0,0.8);
+            --border-color: #1a1a1a;
+            --border-input: #2a2a2a;
+            --border-active: #0055aa;
+        }
+        [data-bg="red"] {
+            --bg-primary: #1a0a0a;
+            --bg-secondary: #221010;
+            --bg-tertiary: #2a1515;
+            --bg-hover: #331a1a;
+            --bg-active: #5c1a1a;
+            --bg-editor: #2d1515;
+            --bg-modal: #221010;
+            --bg-input: #2a1515;
+            --bg-button: #2a1515;
+            --bg-button-hover: #3a2020;
+            --bg-btn-primary: #8b2222;
+            --bg-btn-primary-hover: #aa2a2a;
+            --bg-btn-danger: #8b2222;
+            --bg-btn-danger-hover: #aa2a2a;
+            --bg-btn-opt: #2a4a1a;
+            --bg-btn-opt-hover: #3a6a2a;
+            --bg-toast: #2a1515;
+            --bg-scrollbar-track: #1a0a0a;
+            --bg-scrollbar-thumb: #4a2020;
+            --bg-overlay: rgba(30,0,0,0.7);
+            --border-color: #3a1a1a;
+            --border-input: #4a2525;
+            --border-active: #8b2222;
+        }
+        [data-bg="blue"] {
+            --bg-primary: #101826;
+            --bg-secondary: #121c2e;
+            --bg-tertiary: #162238;
+            --bg-hover: #1a2842;
+            --bg-active: #1a4a8b;
+            --bg-editor: #1a2438;
+            --bg-modal: #121c2e;
+            --bg-input: #162238;
+            --bg-button: #162238;
+            --bg-button-hover: #1a2842;
+            --bg-btn-primary: #1a5aaa;
+            --bg-btn-primary-hover: #226ac4;
+            --bg-btn-danger: #6b2a2a;
+            --bg-btn-danger-hover: #8a3535;
+            --bg-btn-opt: #1a5a3a;
+            --bg-btn-opt-hover: #2a7a4a;
+            --bg-toast: #162238;
+            --bg-scrollbar-track: #101826;
+            --bg-scrollbar-thumb: #2a3a5a;
+            --bg-overlay: rgba(10,14,26,0.75);
+            --border-color: #1a2845;
+            --border-input: #2a3a5a;
+            --border-active: #1a5aaa;
+        }
+        [data-bg="silver"] {
+            --bg-primary: #e0e0e0;
+            --bg-secondary: #d0d0d0;
+            --bg-tertiary: #c8c8c8;
+            --bg-hover: #b8b8b8;
+            --bg-active: #4a8ab5;
+            --bg-editor: #e8e8e8;
+            --bg-modal: #d0d0d0;
+            --bg-input: #c0c0c0;
+            --bg-button: #c0c0c0;
+            --bg-button-hover: #b0b0b0;
+            --bg-btn-primary: #4a8ab5;
+            --bg-btn-primary-hover: #5a9ac5;
+            --bg-btn-danger: #b55a5a;
+            --bg-btn-danger-hover: #c56a6a;
+            --bg-btn-opt: #5a9a5a;
+            --bg-btn-opt-hover: #6aaa6a;
+            --bg-toast: #d0d0d0;
+            --bg-scrollbar-track: #e0e0e0;
+            --bg-scrollbar-thumb: #aaa;
+            --bg-overlay: rgba(0,0,0,0.3);
+            --border-color: #b0b0b0;
+            --border-input: #a0a0a0;
+            --border-active: #4a8ab5;
+        }
+
+        /* Text color themes */
+        [data-text="dark-text"] {
+            --text-primary: #111;
+            --text-secondary: #222;
+            --text-muted: #444;
+            --text-dim: #666;
+            --text-faint: #888;
+            --text-inverse: #111;
+            --text-bright: #000;
+            --hl-comment: #5a7a4a;
+            --hl-section: #1a5aaa;
+            --hl-key: #1a4a7a;
+            --hl-op: #333;
+            --hl-val: #7a4a2a;
+            --hl-number: #2a6a2a;
+            --hl-string: #7a4a2a;
+            --hl-bracket: #7a6a00;
+            --hl-stat: #6a3a7a;
+            --caret-color: #111;
+            --icon-color: #555;
+            --icon-hover: #111;
+        }
+        [data-text="light-text"] {
+            --text-primary: #eee;
+            --text-secondary: #ddd;
+            --text-muted: #aaa;
+            --text-dim: #888;
+            --text-faint: #777;
+            --text-inverse: #fff;
+            --text-bright: #fff;
+            --hl-comment: #6a9955;
+            --hl-section: #569cd6;
+            --hl-key: #9cdcfe;
+            --hl-op: #d4d4d4;
+            --hl-val: #ce9178;
+            --hl-number: #b5cea8;
+            --hl-string: #ce9178;
+            --hl-bracket: #ffd700;
+            --hl-stat: #c586c0;
+            --caret-color: #fff;
+            --icon-color: #888;
+            --icon-hover: #fff;
+        }
+        [data-text="light-blue"] {
+            --text-primary: #d8e0f0;
+            --text-secondary: #cad2e4;
+            --text-muted: #9aabcc;
+            --text-dim: #7a8aaa;
+            --text-faint: #5a6a8a;
+            --text-inverse: #e0e8f8;
+            --text-bright: #e8f0ff;
+            --hl-comment: #7a9a7a;
+            --hl-section: #7aaae4;
+            --hl-key: #9ac4f0;
+            --hl-op: #c0c8dd;
+            --hl-val: #c0a8a8;
+            --hl-number: #b0c8a0;
+            --hl-string: #c0a8a8;
+            --hl-bracket: #d4c820;
+            --hl-stat: #b090c0;
+            --caret-color: #d8e0f0;
+            --icon-color: #8a9aba;
+            --icon-hover: #d8e0f0;
+        }
+        [data-text="crimson"] {
+            --text-primary: #eed0d0;
+            --text-secondary: #ddbbbb;
+            --text-muted: #b08a8a;
+            --text-dim: #8a6a6a;
+            --text-faint: #6a5555;
+            --text-inverse: #f0d0d0;
+            --text-bright: #ffd0d0;
+            --hl-comment: #7a7a55;
+            --hl-section: #d48a7a;
+            --hl-key: #e4aa9a;
+            --hl-op: #d0b0b0;
+            --hl-val: #e4b0a0;
+            --hl-number: #c8b090;
+            --hl-string: #e4b0a0;
+            --hl-bracket: #e4c000;
+            --hl-stat: #d090b0;
+            --caret-color: #eed0d0;
+            --icon-color: #9a7a7a;
+            --icon-hover: #eed0d0;
+        }
+
+        /* Loading spinner for buttons */
+        .btn-loader {
+            display: inline-block; width: 12px; height: 12px;
+            border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%;
+            animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 2px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn-loading { position: relative; pointer-events: none; opacity: 0.85; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh; overflow: hidden;
+        }
+
+        .app-container { display: flex; height: 100vh; position: relative; }
+
+        .sidebar {
+            width: 260px; min-width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; padding: 8px;
+            transition: width 0.2s, min-width 0.2s, padding 0.2s, opacity 0.2s, margin-left 0.2s; overflow: hidden;
+        }
+        .sidebar.collapsed {
+            width: 0; min-width: 0; padding: 0; opacity: 0; border-right: none;
+        }
+        .sidebar-header {
+            padding: 8px 4px; font-weight: bold; color: var(--text-secondary); font-size: 13px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px; white-space: nowrap;
+        }
+        .sidebar-header .subtitle { font-weight: normal; font-size: 11px; color: var(--text-muted); }
+        .sidebar-header .hide-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 0 4px; }
+        .sidebar-header .hide-btn:hover { color: var(--icon-hover); }
+        .file-list-container { flex: 1; overflow-y: auto; min-height: 0; }
+        .file-list-container::-webkit-scrollbar { width: 6px; }
+        .file-list-container::-webkit-scrollbar-track { background: var(--bg-scrollbar-track); }
+        .file-list-container::-webkit-scrollbar-thumb { background: var(--bg-scrollbar-thumb); border-radius: var(--scrollbar-radius); }
+        .file-item {
+            padding: 6px 8px; cursor: pointer; border-radius: 4px; font-size: 13px; color: var(--text-secondary);
+            display: flex; align-items: center; gap: 6px; transition: background 0.15s; user-select: none; white-space: nowrap;
+        }
+        .file-item:hover { background: var(--bg-hover); }
+        .file-item.active { background: var(--bg-active); color: var(--text-inverse); }
+        .file-item .icon { font-size: 14px; opacity: 0.7; }
+        .file-item .filename { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-item .file-actions { display: none; gap: 2px; }
+        .file-item:hover .file-actions { display: flex; }
+        .file-item .file-actions button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; padding: 0 2px; line-height: 1; }
+        .file-item .file-actions button:hover { color: var(--icon-hover); }
+        .sidebar-actions {
+            display: flex; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color); flex-wrap: wrap; white-space: nowrap;
+        }
+        .sidebar-actions button {
+            flex: 1; min-width: 50px; padding: 4px 8px; background: var(--bg-button); border: 1px solid var(--border-input);
+            color: var(--text-secondary); border-radius: 4px; cursor: pointer; font-size: 12px; text-align: center;
+        }
+        .sidebar-actions button:hover { background: var(--bg-button-hover); }
+        .sidebar-toggle-btn-area { display: flex; align-items: center; padding: 0; }
+        .sidebar-toggle-btn {
+            background: var(--bg-button); border: 1px solid var(--border-input); color: var(--text-secondary); border-radius: 4px;
+            padding: 6px 10px; cursor: pointer; font-size: 14px; margin-right: 4px;
+        }
+        .sidebar-toggle-btn:hover { background: var(--bg-button-hover); }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        .toolbar-wrapper { background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); }
+        .toolbar-header {
+            display: flex; justify-content: space-between; align-items: center; padding: 2px 8px;
+            background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); font-size: 11px; color: var(--text-muted); cursor: pointer;
+        }
+        .toolbar-header:hover { background: var(--bg-hover); }
+        .toolbar-header .hide-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; padding: 0 4px; }
+        .toolbar-header .hide-btn:hover { color: var(--icon-hover); }
+        .toolbar-content {
+            padding: 8px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            transition: max-height 0.2s, padding 0.2s, opacity 0.2s; max-height: 200px; overflow: hidden;
+        }
+        .toolbar-content.collapsed { max-height: 0; padding: 0 12px; opacity: 0; }
+        .toolbar-content label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+        .toolbar-content select, .toolbar-content input, .toolbar-content button { background: var(--bg-input); border: 1px solid var(--border-input); color: var(--text-primary); border-radius: 4px; padding: 4px 8px; font-size: 12px; }
+        .toolbar-content select { min-width: 120px; }
+        .toolbar-content .sim-select { min-width: 160px; flex: 1; max-width: 300px; }
+        .toolbar-content button { cursor: pointer; background: var(--bg-btn-primary); border-color: var(--bg-btn-primary); color: var(--text-bright); }
+        .toolbar-content button:hover { background: var(--bg-btn-primary-hover); }
+        .toolbar-content .btn-secondary { background: var(--bg-button); border-color: var(--border-input); color: var(--text-secondary); }
+        .toolbar-content .btn-secondary:hover { background: var(--bg-button-hover); }
+        .toolbar-content .btn-danger { background: var(--bg-btn-danger); border-color: var(--bg-btn-danger); color: var(--text-bright); }
+        .toolbar-content .btn-danger:hover { background: var(--bg-btn-danger-hover); }
+        .toolbar-content .btn-opt { background: var(--bg-btn-opt); border-color: var(--bg-btn-opt); }
+        .toolbar-content .btn-opt:hover { background: var(--bg-btn-opt-hover); }
+        .toolbar-content .btn-settings {
+            background: var(--bg-button); border: 1px solid var(--border-input); color: var(--text-muted);
+            font-size: 16px; padding: 2px 8px; line-height: 1.4;
+        }
+        .toolbar-content .btn-settings:hover { background: var(--bg-button-hover); color: var(--icon-hover); }
+        .toolbar-divider { width: 1px; height: 24px; background: var(--border-color); margin: 0 4px; }
+        .sim-list-area { display: flex; align-items: center; gap: 4px; }
+        .sim-list-area select { max-width: 200px; }
+        .sim-list-area .sm-btn { padding: 4px 8px; background: var(--bg-button); border: 1px solid var(--border-input); color: var(--text-secondary); border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .sim-list-area .sm-btn:hover { background: var(--bg-button-hover); }
+        .sim-list-area .sm-btn-add { background: var(--bg-btn-opt); border-color: var(--bg-btn-opt); color: var(--text-bright); }
+        .sim-list-area .sm-btn-add:hover { background: var(--bg-btn-opt-hover); }
+        .sim-list-area .sm-btn-del { background: var(--bg-btn-danger); border-color: var(--bg-btn-danger); color: var(--text-bright); }
+        .sim-list-area .sm-btn-del:hover { background: var(--bg-btn-danger-hover); }
+
+        .editor-area { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; }
+        .file-indicator {
+            padding: 4px 12px; background: var(--bg-primary); color: var(--text-dim); font-size: 11px;
+            border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; white-space: nowrap;
+        }
+        .file-indicator .status { color: var(--toast-success-border); }
+        .file-indicator .format-btn { background: none; border: 1px solid var(--border-input); color: var(--text-muted); cursor: pointer; font-size: 10px; padding: 2px 6px; border-radius: 3px; }
+        .file-indicator .format-btn:hover { background: var(--bg-hover); color: var(--text-secondary); }
+
+        .editor-wrapper { flex: 1; position: relative; overflow: hidden; background: var(--bg-editor); display: flex; }
+        .editor-wrapper.split .editor-pane { width: 50%; }
+        .editor-wrapper.split .editor-pane:last-child { border-right: none; }
+        .editor-pane { flex: 1; position: relative; overflow: hidden; }
+        .editor-pane .editor-textarea::-webkit-scrollbar { 
+            display: none; 
+        }
+        .editor-wrapper.split .editor-pane:first-child .editor-textarea { overflow-y: auto; }
+        .editor-wrapper.split .editor-pane:last-child .editor-textarea { overflow-y: auto; }
+        .resizer {
+            width: 4px; background: var(--border-color); cursor: col-resize; position: relative;
+            transition: background 0.2s; flex-shrink: 0;
+        }
+        .resizer:hover { background: var(--text-muted); }
+        .resizer::before {
+            content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 2px; height: 100%; background: var(--border-color);
+        }
+        .editor-highlight {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            padding: 12px; font-family: 'Consolas', 'Courier New', monospace; font-size: var(--editor-font-size, 13px); line-height: 1.5;
+            tab-size: 4; white-space: pre-wrap; word-wrap: break-word; overflow: hidden;
+            pointer-events: none; color: var(--hl-op);
+        }
+        .editor-textarea {
+            position: relative; width: 100%; height: 100%; background: transparent; color: transparent;
+            caret-color: var(--caret-color); border: none; outline: none; padding: 12px;
+            font-family: 'Consolas', 'Courier New', monospace; font-size: var(--editor-font-size, 13px); line-height: 1.5;
+            resize: none; tab-size: 4; white-space: pre-wrap; word-wrap: break-word; overflow-y: auto; z-index: 2;
+        }
+        .editor-textarea::placeholder { color: var(--text-faint); }
+        .editor-textarea:focus { outline: none; }
+        .editor-pane-label {
+            position: absolute; top: 2px; right: 6px; font-size: 10px; color: var(--text-faint);
+            pointer-events: none; z-index: 3; opacity: 0.6;
+        }
+
+        .hl-comment { color: var(--hl-comment); font-style: italic; }
+        .hl-section { color: var(--hl-section); font-weight: bold; }
+        .hl-key { color: var(--hl-key); }
+        .hl-op { color: var(--hl-op); }
+        .hl-val { color: var(--hl-val); }
+        .hl-number { color: var(--hl-number); }
+        .hl-string { color: var(--hl-string); }
+        .hl-bracket { color: var(--hl-bracket); }
+        .hl-stat { color: var(--hl-stat); }
+
+        .log-area {
+            background: var(--bg-primary); border-top: 1px solid var(--border-color); display: flex; flex-direction: column;
+            transition: flex 0.2s, max-height 0.2s; flex: 0 0 180px; min-height: 30px; max-height: 50vh;
+        }
+        .log-area.collapsed { flex: 0 0 30px; overflow: hidden; }
+        .log-area.collapsed .log-content { display: none; }
+        .log-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 4px 12px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted); flex-shrink: 0;
+        }
+        .log-header button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; }
+        .log-header button:hover { color: var(--icon-hover); }
+        .log-content { flex: 1; overflow-y: auto; padding: 8px 12px; font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; color: var(--text-secondary); white-space: pre-wrap; word-break: break-all; }
+        .log-content::-webkit-scrollbar { width: 6px; }
+        .log-content::-webkit-scrollbar-track { background: var(--bg-scrollbar-track); }
+        .log-content::-webkit-scrollbar-thumb { background: var(--bg-scrollbar-thumb); border-radius: var(--scrollbar-radius); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-overlay); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: var(--bg-modal); border: 1px solid var(--border-color); border-radius: 8px;
+            max-width: 90vw; max-height: 80vh; display: flex; flex-direction: column;
+        }
+        .modal.settings-modal { width: 480px; }
+        .modal.modal-wide { width: 600px; }
+        .modal-header { padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 14px; color: var(--text-primary); }
+        .modal-header button { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; }
+        .modal-header button:hover { color: var(--icon-hover); }
+        .modal-body { padding: 12px 16px; flex: 1; overflow-y: auto; }
+        .modal-body textarea { width: 100%; height: 300px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; font-family: 'Consolas', 'Courier New', monospace; font-size: 12px; resize: vertical; }
+        .modal-footer { padding: 8px 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px; }
+        .modal-footer button { padding: 6px 16px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; }
+        .modal-footer .btn-primary { background: var(--bg-btn-primary); color: var(--text-bright); }
+        .modal-footer .btn-primary:hover { background: var(--bg-btn-primary-hover); }
+        .modal-footer .btn-secondary { background: var(--bg-button); color: var(--text-secondary); border: 1px solid var(--border-input); }
+        .modal-footer .btn-secondary:hover { background: var(--bg-button-hover); }
+
+        /* Settings modal theme picker */
+        .settings-section { margin-bottom: 16px; }
+        .settings-section h4 {
+            font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;
+            padding-bottom: 4px; border-bottom: 1px solid var(--border-color);
+        }
+        .settings-description { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+        .theme-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+        }
+        .theme-card {
+            padding: 10px; border: 2px solid var(--border-color); border-radius: 8px;
+            cursor: pointer; transition: all 0.15s; user-select: none;
+        }
+        .theme-card:hover { border-color: var(--text-muted); }
+        .theme-card.active { border-color: var(--bg-btn-primary); }
+        .theme-card .theme-preview {
+            height: 36px; border-radius: 4px; margin-bottom: 6px;
+            display: flex; gap: 4px; overflow: hidden;
+        }
+        .theme-card .theme-preview span { flex: 1; }
+        .theme-card .theme-name { font-size: 12px; font-weight: 600; color: var(--text-primary); text-align: center; }
+        .theme-card .theme-desc { font-size: 10px; color: var(--text-muted); text-align: center; }
+
+        .text-theme-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+        }
+        .text-theme-card {
+            padding: 10px; border: 2px solid var(--border-color); border-radius: 8px;
+            cursor: pointer; transition: all 0.15s; user-select: none; text-align: center;
+        }
+        .text-theme-card:hover { border-color: var(--text-muted); }
+        .text-theme-card.active { border-color: var(--bg-btn-primary); }
+        .text-theme-card .tt-preview {
+            height: 28px; border-radius: 4px; margin-bottom: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: bold;
+        }
+        .text-theme-card .tt-name { font-size: 12px; font-weight: 600; color: var(--text-primary); text-align: center; }
+
+        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; }
+        .toast {
+            padding: 10px 16px; background: var(--bg-toast); border: 1px solid var(--border-input);
+            border-radius: 6px; color: var(--text-primary); font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.2s ease;
+        }
+        .toast.success { border-left: 4px solid var(--toast-success-border); }
+        .toast.error { border-left: 4px solid var(--toast-error-border); }
+        .toast.info { border-left: 4px solid var(--toast-info-border); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .no-configs-msg { padding: 20px; text-align: center; color: var(--text-faint); font-size: 13px; }
+
+        /* Browse modal uses the standard modal width */
+        #browseModal .modal { width: 700px; height: 500px; max-height: 90vh; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div><div>Configs</div><div class="subtitle" id="configCount">0 files</div></div>
+            <button class="hide-btn" onclick="toggleSidebar()" title="Hide sidebar">&#9668;</button>
+        </div>
+        <div class="file-list-container" id="fileList"></div>
+        <div class="sidebar-actions">
+            <button onclick="newConfig()">+ New</button>
+            <button onclick="duplicateConfig()">Copy</button>
+            <button onclick="renameConfig()">Rename</button>
+            <button onclick="deleteConfig()">Del</button>
+            <button onclick="showExportModal()">Export</button>
+            <button onclick="showImportModal()">Import</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="toolbar-wrapper">
+            <div class="toolbar-header" onclick="toggleToolbar()">
+                <div class="sidebar-toggle-btn-area">
+                    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" onclick="event.stopPropagation();toggleSidebar()" title="Toggle configs sidebar">&#9776;</button>
+                    <span>Controls</span>
+                </div>
+                <div>
+                    <span style="margin-right:8px;font-size:10px;color:var(--text-faint);" id="simIndicator">No sim selected</span>
+                    <button class="hide-btn" id="toolbarToggleBtn" onclick="event.stopPropagation();toggleToolbar()">&#9650;</button>
+                </div>
+            </div>
+            <div class="toolbar-content" id="toolbarContent">
+                <label>Project:</label>
+                <select id="projectSelect" onchange="onProjectChange()"></select>
+                <button class="btn-secondary" onclick="createProject()">Create</button>
+                <button class="btn-secondary" onclick="renameProject()">Rename</button>
+                <button class="btn-danger" onclick="deleteProject()">Delete</button>
+                <div class="toolbar-divider"></div>
+                <label>Sim:</label>
+                <div class="sim-list-area">
+                    <select id="simSelect" class="sim-select" onchange="onSimSelectChange()"></select>
+                    <button class="sm-btn sm-btn-add" onclick="addSimPath()">+</button>
+                    <button class="sm-btn sm-btn-del" onclick="removeSimPath()">-</button>
+                    <button class="sm-btn" onclick="browseSimPath()">Browse</button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <button onclick="runSelected()">&#9654; Run</button>
+                <button onclick="runAll()">&#9654;&#9654; Run All</button>
+                <button class="btn-opt" onclick="optimizeSelected()">Optimize</button>
+                <button class="btn-danger" onclick="terminateProcesses()">&#9632; Stop</button>
+                <div class="toolbar-divider"></div>
+                <button class="btn-settings" onclick="showSettingsModal()" title="Settings">&#9881;</button>
+                <div class="toolbar-divider"></div>
+                <button class="btn-settings" onclick="showHelpModal()" title="How to use" style="font-size:12px;padding:2px 10px;">?</button>
+            </div>
+        </div>
+
+        <div class="editor-area">
+            <div class="file-indicator">
+                <span id="fileIndicator">No file loaded</span>
+                <span style="display: flex; align-items: center; gap: 8px;">
+                    <label style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="autosaveToggle" checked onchange="toggleAutosave()" style="cursor: pointer;">
+                        Autosave
+                    </label>
+                    <button class="format-btn" onclick="toggleSplitView()" title="Split view at active(;)">&#x2194; Split</button>
+                    <button class="format-btn" onclick="formatConfig()" title="Auto-format config">Format</button>
+                    <span class="status" id="saveStatus"></span>
+                </span>
+            </div>
+            <div class="editor-wrapper" id="editorWrapper">
+                <div class="editor-pane" id="pane1">
+                    <div class="editor-highlight" id="editorHighlight"></div>
+                    <textarea class="editor-textarea" id="editor" placeholder="Select a config file from the sidebar, or create a new one..." spellcheck="false"></textarea>
+                    <div class="editor-pane-label">Config (from active)</div>
+                </div>
+                <div class="resizer" id="resizer" style="display:none;"></div>
+                <div class="editor-pane" id="pane2" style="display:none;">
+                    <div class="editor-highlight" id="editorHighlight2"></div>
+                    <textarea class="editor-textarea" id="editor2" placeholder="Split view..." spellcheck="false"></textarea>
+                    <div class="editor-pane-label">Characters / Team</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-area" id="logArea">
+            <div class="log-header">
+                <span>Output Log</span>
+                <div>
+                    <button onclick="clearLog()">Clear</button>
+                    <button id="logToggleBtn" onclick="toggleLog()" title="Toggle log area">&#9660;</button>
+                </div>
+            </div>
+            <div class="log-content" id="logContent"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+    <div class="modal settings-modal">
+        <div class="modal-header">
+            <h3>Settings</h3>
+            <button onclick="closeModal('settingsModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="settings-section">
+                <h4>Background Theme</h4>
+                <p class="settings-description">Choose a background color scheme.</p>
+                <div class="theme-grid" id="bgThemeGrid">
+                    <div class="theme-card active" data-bg-val="default" onclick="selectBgTheme('default')">
+                        <div class="theme-preview">
+                            <span style="background:#1e1e1e;"></span>
+                            <span style="background:#252526;"></span>
+                            <span style="background:#0e639c;"></span>
+                            <span style="background:#2d2d2d;"></span>
+                        </div>
+                        <div class="theme-name">Default Dark</div>
+                        <div class="theme-desc">Original dark theme</div>
+                    </div>
+                    <div class="theme-card" data-bg-val="pitch-black" onclick="selectBgTheme('pitch-black')">
+                        <div class="theme-preview">
+                            <span style="background:#000;"></span>
+                            <span style="background:#0a0a0a;"></span>
+                            <span style="background:#004080;"></span>
+                            <span style="background:#111;"></span>
+                        </div>
+                        <div class="theme-name">Pitch Black</div>
+                        <div class="theme-desc">Pure black background</div>
+                    </div>
+                    <div class="theme-card" data-bg-val="red" onclick="selectBgTheme('red')">
+                        <div class="theme-preview">
+                            <span style="background:#1a0a0a;"></span>
+                            <span style="background:#221010;"></span>
+                            <span style="background:#8b2222;"></span>
+                            <span style="background:#2d1515;"></span>
+                        </div>
+                        <div class="theme-name">Red</div>
+                        <div class="theme-desc">Dark crimson tones</div>
+                    </div>
+                    <div class="theme-card" data-bg-val="blue" onclick="selectBgTheme('blue')">
+                        <div class="theme-preview">
+                            <span style="background:#101826;"></span>
+                            <span style="background:#121c2e;"></span>
+                            <span style="background:#1a5aaa;"></span>
+                            <span style="background:#162238;"></span>
+                        </div>
+                        <div class="theme-name">Blue</div>
+                        <div class="theme-desc">Deep ocean blues</div>
+                    </div>
+                    <div class="theme-card" data-bg-val="silver" onclick="selectBgTheme('silver')">
+                        <div class="theme-preview">
+                            <span style="background:#e0e0e0;"></span>
+                            <span style="background:#d0d0d0;"></span>
+                            <span style="background:#4a8ab5;"></span>
+                            <span style="background:#c8c8c8;"></span>
+                        </div>
+                        <div class="theme-name">Silver</div>
+                        <div class="theme-desc">Light elegant theme</div>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section" style="margin-top: 12px;">
+                <h4>Text Color Theme</h4>
+                <p class="settings-description">Choose text colors independent of the background.</p>
+                <div class="text-theme-grid" id="textThemeGrid">
+                    <div class="text-theme-card active" data-text-val="light-text" onclick="selectTextTheme('light-text')">
+                        <div class="tt-preview" style="background:#333;color:#eee;border:1px solid #555;">Aa</div>
+                        <div class="tt-name">Light</div>
+                    </div>
+                    <div class="text-theme-card" data-text-val="light-blue" onclick="selectTextTheme('light-blue')">
+                        <div class="tt-preview" style="background:#1a2438;color:#d8e0f0;border:1px solid #2a3a5a;">Aa</div>
+                        <div class="tt-name">Light Blue</div>
+                    </div>
+                    <div class="text-theme-card" data-text-val="crimson" onclick="selectTextTheme('crimson')">
+                        <div class="tt-preview" style="background:#2a1515;color:#eed0d0;border:1px solid #4a2525;">Aa</div>
+                        <div class="tt-name">Crimson</div>
+                    </div>
+                    <div class="text-theme-card" data-text-val="dark-text" onclick="selectTextTheme('dark-text')">
+                        <div class="tt-preview" style="background:#ddd;color:#111;border:1px solid #aaa;">Aa</div>
+                        <div class="tt-name">Dark</div>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section" style="margin-top: 12px;">
+                <h4>Editor Font Size</h4>
+                <p class="settings-description">Adjust the editor text size.</p>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="range" id="fontSizeSlider" min="10" max="24" value="13" step="1" oninput="updateFontSize(this.value)" style="flex:1;accent-color:var(--bg-btn-primary);cursor:pointer;">
+                    <span id="fontSizeLabel" style="font-size:13px;color:var(--text-primary);min-width:32px;text-align:center;">13</span>
+                </div>
+            </div>
+            <div class="settings-section" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-bottom: 0; margin-top: 12px;">
+                <p style="font-size: 11px; color: var(--text-muted); text-align: center;">Created by <strong style="color: var(--text-secondary);">@enigwa</strong> on Discord &mdash; feel free to message me if you have any questions!</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('settingsModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal-overlay" id="helpModal">
+    <div class="modal" style="width: 460px;">
+        <div class="modal-header">
+            <h3>How to Use</h3>
+            <button onclick="closeModal('helpModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+            <p><strong>1. Add your sim executable</strong><br>
+            Click <strong>+</strong> or <strong>Browse</strong> to locate your gcsim .exe.</p>
+
+            <p style="margin-top: 12px;"><strong>2. Create a project</strong><br>
+            Click <strong>Create</strong> and give it a name to organise your configs.</p>
+
+            <p style="margin-top: 12px;"><strong>3. Add configs</strong><br>
+            Click <strong>+ New</strong> in the sidebar to create config files, then write or paste your sim config in the editor.</p>
+
+            <p style="margin-top: 12px;"><strong>4. Run or Optimize</strong><br>
+            Select a config in the sidebar and click <strong>Run</strong> or <strong>Optimize</strong>. Use <strong>Stop</strong> to cancel.</p>
+
+            <p style="margin-top: 12px; color: var(--text-muted); font-size: 12px;">Results appear on a separate link.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('helpModal')">Got it</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="exportModal">
+    <div class="modal modal-wide">
+        <div class="modal-header"><h3>Export All Configs</h3><button onclick="closeModal('exportModal')">&times;</button></div>
+        <div class="modal-body"><textarea id="exportText" readonly placeholder="Loading..."></textarea></div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('exportModal')">Close</button>
+            <button class="btn-primary" onclick="copyExport()">Copy to Clipboard</button>
+            <button class="btn-primary" onclick="downloadExport()">Download</button>
+        </div>
+    </div>
+</div>
+<div class="modal-overlay" id="importModal">
+    <div class="modal modal-wide">
+        <div class="modal-header"><h3>Import Configs</h3><button onclick="closeModal('importModal')">&times;</button></div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted);font-size:12px;margin-bottom:8px;">Paste exported config text below.</p>
+            <textarea id="importText" placeholder="Paste export content here..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('importModal')">Cancel</button>
+            <button class="btn-primary" onclick="importConfigs()">Import</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="browseModal">
+    <div class="modal" style="width: 700px; height: 500px; max-height: 90vh;">
+        <div class="modal-header">
+            <h3>Browse for Sim Executable</h3>
+            <button onclick="closeModal('browseModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px; height: calc(100% - 110px); overflow: hidden;">
+            <div id="driveSelectorContainer" style="display: none; align-items: center; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                <span style="font-size: 11px; color: var(--text-muted);">Drives:</span>
+                <span id="driveList" style="display: flex; gap: 6px;"></span>
+            </div>
+            
+            <div style="display: flex; gap: 6px; align-items: center;">
+                <button class="sm-btn" onclick="navigateBrowseUp()" id="browseUpBtn" style="padding: 4px 8px; font-weight: bold;">&uarr; Up</button>
+                <input type="text" id="browseCurrentPathInput" style="flex: 1; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 4px 8px; font-family: monospace; font-size: 12px;" onkeydown="if(event.key === 'Enter') navigateBrowseToPath(this.value)">
+                <button class="sm-btn" onclick="navigateBrowseToPath(document.getElementById('browseCurrentPathInput').value)" style="padding: 4px 8px;">Go</button>
+            </div>
+            
+            <div id="browseList" style="flex: 1; overflow-y: auto; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px; display: flex; flex-direction: column; gap: 2px; font-family: monospace; font-size: 12px;">
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 8px 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <span id="selectedFilePathText" style="font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 440px; text-align: left;">No file selected</span>
+            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                <button class="btn-secondary" onclick="closeModal('browseModal')">Cancel</button>
+                <button class="btn-primary" id="confirmBrowseBtn" onclick="confirmBrowseSelection()" disabled>Select</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+var state = {
+    currentProject: '',
+    currentFile: null,
+    configs: [],
+    settings: { base_dir: '', gcsim_paths: [], selected_gcsim: '', project_name: '' },
+    projects: [],
+    dirty: false,
+    runId: null,
+    pollInterval: null,
+    editorTimeout: null,
+    currentBgTheme: localStorage.getItem('gcsim_bg') || 'default',
+    currentTextTheme: localStorage.getItem('gcsim_text') || 'light-text',
+    editorFontSize: parseInt(localStorage.getItem('gcsim_fontsize')) || 13
+};
+
+var SECTION_NAMES = new Set([
+    'options', 'characters', 'target', 'team', 'settings',
+    'energy', 'active', 'simulation', 'enemy', 'hash', 'gcsl'
+]);
+
+// ========== THEME SYSTEM ==========
+function applyBgTheme(themeName) {
+    var root = document.documentElement;
+    if (themeName === 'default') {
+        root.removeAttribute('data-bg');
+    } else {
+        root.setAttribute('data-bg', themeName);
+    }
+    state.currentBgTheme = themeName;
+    localStorage.setItem('gcsim_bg', themeName);
+
+    document.querySelectorAll('#bgThemeGrid .theme-card').forEach(function(card) {
+        card.classList.toggle('active', card.getAttribute('data-bg-val') === themeName);
+    });
+}
+
+function applyTextTheme(themeName) {
+    document.documentElement.setAttribute('data-text', themeName);
+    state.currentTextTheme = themeName;
+    localStorage.setItem('gcsim_text', themeName);
+
+    document.querySelectorAll('#textThemeGrid .text-theme-card').forEach(function(card) {
+        card.classList.toggle('active', card.getAttribute('data-text-val') === themeName);
+    });
+}
+
+function applyFontSize(size) {
+    document.documentElement.style.setProperty('--editor-font-size', size + 'px');
+    state.editorFontSize = size;
+    localStorage.setItem('gcsim_fontsize', size.toString());
+}
+
+function selectBgTheme(themeName) {
+    applyBgTheme(themeName);
+    toast('Background theme changed', 'success');
+}
+
+function selectTextTheme(themeName) {
+    applyTextTheme(themeName);
+    toast('Text color theme changed', 'success');
+}
+
+function updateFontSize(size) {
+    applyFontSize(parseInt(size));
+    document.getElementById('fontSizeLabel').textContent = size;
+}
+
+function showSettingsModal() {
+    // Highlight active bg theme
+    document.querySelectorAll('#bgThemeGrid .theme-card').forEach(function(card) {
+        card.classList.toggle('active', card.getAttribute('data-bg-val') === state.currentBgTheme);
+    });
+    // Highlight active text theme
+    document.querySelectorAll('#textThemeGrid .text-theme-card').forEach(function(card) {
+        card.classList.toggle('active', card.getAttribute('data-text-val') === state.currentTextTheme);
+    });
+    // Set font size slider
+    document.getElementById('fontSizeSlider').value = state.editorFontSize;
+    document.getElementById('fontSizeLabel').textContent = state.editorFontSize;
+    document.getElementById('settingsModal').classList.add('show');
+}
+
+function showHelpModal() {
+    document.getElementById('helpModal').classList.add('show');
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&]/g, '&' + 'amp;').replace(/[<]/g, '&' + 'lt;').replace(/[>]/g, '&' + 'gt;');
+}
+
+function tokenize(text) {
+    if (!text) return '';
+    var lines = text.split('\n');
+    var result = [];
+    for (var li = 0; li < lines.length; li++) {
+        var line = lines[li];
+        if (line.trim() === '') { result.push('\n'); continue; }
+        var trimmed = line.trim();
+        if (trimmed.startsWith('#') || trimmed.startsWith('//')) {
+            result.push('<span class="hl-comment">' + escapeHtml(line) + '</span>\n');
+            continue;
+        }
+        var sectionMatch = trimmed.match(/^(\w[\w]*)(?:\s*\{?)\s*$/);
+        if (sectionMatch && SECTION_NAMES.has(sectionMatch[1].toLowerCase())) {
+            var indent = line.match(/^\s*/)[0];
+            result.push(escapeHtml(indent) + '<span class="hl-section">' + escapeHtml(sectionMatch[1]) + '</span>' + escapeHtml(line.substring(indent.length + sectionMatch[1].length)) + '\n');
+            continue;
+        }
+        result.push(tokenizeLine(line) + '\n');
+    }
+    return result.join('');
+}
+
+function tokenizeLine(line) {
+    if (!line.trim()) return '';
+    var tokens = [];
+    var i = 0;
+    while (i < line.length) {
+        if (line[i] === ' ' || line[i] === '\t') {
+            var ws = '';
+            while (i < line.length && (line[i] === ' ' || line[i] === '\t')) { ws += line[i]; i++; }
+            tokens.push(escapeHtml(ws));
+            continue;
+        }
+        if (line[i] === '#' || (line[i] === '/' && line[i+1] === '/')) {
+            tokens.push('<span class="hl-comment">' + escapeHtml(line.substring(i)) + '</span>');
+            i = line.length;
+            break;
+        }
+        if (line[i] === '{' || line[i] === '}' || line[i] === '(' || line[i] === ')') {
+            tokens.push('<span class="hl-bracket">' + escapeHtml(line[i]) + '</span>');
+            i++;
+            continue;
+        }
+        if (/\d/.test(line[i])) {
+            var num = '';
+            while (i < line.length && (/\d/.test(line[i]) || line[i] === '.')) { num += line[i]; i++; }
+            tokens.push('<span class="hl-number">' + escapeHtml(num) + '</span>');
+            continue;
+        }
+        if (line[i] === '"' || line[i] === "'") {
+            var quote = line[i];
+            var str = quote;
+            i++;
+            while (i < line.length && line[i] !== quote) {
+                if (line[i] === '\\') { str += line[i]; i++; if (i < line.length) { str += line[i]; i++; } }
+                else { str += line[i]; i++; }
+            }
+            if (i < line.length) { str += line[i]; i++; }
+            tokens.push('<span class="hl-string">' + escapeHtml(str) + '</span>');
+            continue;
+        }
+        if (line[i] === ':') { tokens.push('<span class="hl-op">:</span>'); i++; continue; }
+        if (line[i] === '=') { tokens.push('<span class="hl-op">=</span>'); i++; if (line[i] === ' ') { tokens.push(' '); i++; } continue; }
+        if (line[i] === ',') { tokens.push('<span class="hl-op">,</span>'); i++; continue; }
+        if (line[i] === '|' && line[i+1] === '|') { tokens.push('<span class="hl-op">||</span>'); i += 2; continue; }
+        if (line[i] === '|') { tokens.push('<span class="hl-op">|</span>'); i++; continue; }
+        if (/[a-zA-Z_]/.test(line[i]) || line[i] === '%') {
+            var word = '';
+            while (i < line.length && /[a-zA-Z0-9_\-\.%]/.test(line[i])) { word += line[i]; i++; }
+            var nextChar = line[i] || '';
+            if (nextChar === '=' || nextChar === ':') {
+                tokens.push('<span class="hl-key">' + escapeHtml(word) + '</span>');
+            } else if (SECTION_NAMES.has(word.toLowerCase())) {
+                tokens.push('<span class="hl-section">' + escapeHtml(word) + '</span>');
+            } else if (/^\d/.test(word)) {
+                tokens.push('<span class="hl-number">' + escapeHtml(word) + '</span>');
+            } else if (word.endsWith('%') || word.endsWith('_')) {
+                tokens.push('<span class="hl-stat">' + escapeHtml(word) + '</span>');
+            } else {
+                tokens.push('<span class="hl-val">' + escapeHtml(word) + '</span>');
+            }
+            continue;
+        }
+        tokens.push(escapeHtml(line[i]));
+        i++;
+    }
+    return tokens.join('');
+}
+
+function updateHighlight() {
+    var editor = document.getElementById('editor');
+    var highlight = document.getElementById('editorHighlight');
+    highlight.innerHTML = tokenize(editor.value);
+}
+
+function syncEditorScroll() {
+    var editor = document.getElementById('editor');
+    var highlight = document.getElementById('editorHighlight');
+    highlight.scrollTop = editor.scrollTop;
+    highlight.scrollLeft = editor.scrollLeft;
+}
+
+async function api(method, url, body) {
+    var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    var resp = await fetch(url, opts);
+    if (!resp.ok) {
+        var err = await resp.json().catch(function() { return { error: resp.statusText }; });
+        throw new Error(err.error || resp.statusText);
+    }
+    return resp.json();
+}
+
+function toast(msg, type) {
+    if (!type) type = 'info';
+    var container = document.getElementById('toastContainer');
+    var el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(function() { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(function() { el.remove(); }, 300); }, 4000);
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+
+var toolbarVisible = true;
+function toggleToolbar() {
+    toolbarVisible = !toolbarVisible;
+    document.getElementById('toolbarContent').classList.toggle('collapsed');
+    document.getElementById('toolbarToggleBtn').textContent = toolbarVisible ? '\u25B2' : '\u25BC';
+}
+
+var logVisible = true;
+function toggleLog() {
+    logVisible = !logVisible;
+    document.getElementById('logArea').classList.toggle('collapsed');
+    document.getElementById('logToggleBtn').textContent = logVisible ? '\u25BC' : '\u25B2';
+}
+
+function formatConfig() {
+    var editor = document.getElementById('editor');
+    var raw = editor.value;
+    if (!raw.trim()) return;
+    var result = raw;
+    result = result.split('\n').map(function(l) { return l.replace(/\s+$/, ''); }).join('\n');
+    result = result.replace(/\n{3,}/g, '\n\n');
+    var sectionHeaders = /^(options|characters|target|team|settings|energy|active|simulation|enemy)\b/im;
+    result = result.split('\n').map(function(line, i, arr) {
+        if (i > 0 && sectionHeaders.test(line) && arr[i-1].trim() !== '') return '\n' + line;
+        return line;
+    }).join('\n');
+    result = result.replace(/(\w[\w.%]*):\s*(\d+(?:\.\d+)?)/g, '$1:$2');
+    var indentLevel = 0;
+    var lines = result.split('\n');
+    var formatted = [];
+    for (var i = 0; i < lines.length; i++) {
+        var trimmed = lines[i].trim();
+        if (trimmed.startsWith('#') || trimmed.startsWith('//')) { formatted.push(lines[i].replace(/^\s*/, '')); continue; }
+        if (trimmed === '') { formatted.push(''); continue; }
+        if (trimmed.startsWith('}')) indentLevel = Math.max(0, indentLevel - 1);
+        formatted.push('  '.repeat(indentLevel) + trimmed);
+        if (trimmed.endsWith('{') || ((trimmed.match(/\{/g) || []).length > (trimmed.match(/\}/g) || []).length && !trimmed.startsWith('}'))) indentLevel++;
+    }
+    result = formatted.join('\n');
+    result = result.replace(/\n+$/, '\n');
+    editor.value = result;
+        state.dirty = true;
+        updateHighlight();
+        toast('Config formatted', 'info');
+}
+
+async function saveSettings() {
+    var sel = document.getElementById('simSelect');
+    var paths = [];
+    for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value) paths.push(sel.options[i].value); }
+    state.settings.gcsim_paths = paths;
+    state.settings.selected_gcsim = sel.value || '';
+    state.settings.project_name = state.currentProject;
+    try { await api('POST', '/api/settings', state.settings); } catch (e) { console.error('Settings save error:', e); }
+}
+
+async function loadSettings() {
+    try {
+        state.settings = await api('GET', '/api/settings');
+        populateSimSelect(state.settings.gcsim_paths || [], state.settings.selected_gcsim || '');
+        updateSimIndicator();
+    } catch (e) { console.error('Settings load error:', e); }
+}
+
+function populateSimSelect(paths, selected) {
+    var sel = document.getElementById('simSelect');
+    sel.innerHTML = '';
+    if (!paths || paths.length === 0) {
+        var opt = document.createElement('option'); opt.value = ''; opt.textContent = 'No gcsim.exe added'; opt.disabled = true; sel.appendChild(opt);
+    } else {
+        paths.forEach(function(p) {
+            if (!p) return;
+            var opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = p.split('\\').pop().split('/').pop() || p;
+            if (p === selected) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        if (!sel.value && paths.length > 0) sel.value = paths[0];
+    }
+}
+
+function updateSimIndicator() {
+    var sel = document.getElementById('simSelect');
+    var ind = document.getElementById('simIndicator');
+    ind.textContent = sel.value ? 'Sim: ' + (sel.value.split('\\').pop().split('/').pop() || sel.value) : 'No sim selected';
+}
+
+function onSimSelectChange() { updateSimIndicator(); saveSettings(); }
+
+function addSimPath() {
+    var path = prompt('Enter the full path to a sim executable (.exe):');
+    if (!path) return;
+    if (!path.endsWith('.exe')) { toast('Path must end with .exe', 'error'); return; }
+    var sel = document.getElementById('simSelect');
+    for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === path) { sel.value = path; updateSimIndicator(); saveSettings(); toast('Sim already in list, selected.', 'info'); return; } }
+    var opt = document.createElement('option');
+    opt.value = path; opt.textContent = path.split('\\').pop().split('/').pop() || path;
+    sel.appendChild(opt); sel.value = path;
+    updateSimIndicator(); saveSettings(); toast('Added sim: ' + (path.split('\\').pop().split('/').pop() || path), 'success');
+}
+
+function removeSimPath() {
+    var sel = document.getElementById('simSelect');
+    if (!sel.value) { toast('No sim selected to remove', 'error'); return; }
+    if (!confirm('Remove "' + (sel.value.split('\\').pop().split('/').pop() || sel.value) + '" from the list?')) return;
+    var val = sel.value;
+    for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === val) { sel.remove(i); break; } }
+    if (sel.options.length > 0) sel.value = sel.options[0].value;
+    updateSimIndicator(); saveSettings(); toast('Sim removed', 'info');
+}
+
+async function browseSimPath() {
+    document.getElementById('browseModal').classList.add('show');
+    var currentSim = document.getElementById('simSelect').value || '';
+    var startPath = '';
+    if (currentSim) {
+        var lastSlash = Math.max(currentSim.lastIndexOf('\\'), currentSim.lastIndexOf('/'));
+        if (lastSlash !== -1) {
+            startPath = currentSim.substring(0, lastSlash);
+        }
+    }
+    await navigateBrowseToPath(startPath);
+}
+
+async function navigateBrowseToPath(pathStr) {
+    try {
+        var res = await api('POST', '/api/browse', { path: pathStr });
+        state.browseCurrentPath = res.currentPath;
+        state.browseParentPath = res.parentPath;
+        state.browseSelectedFile = null;
+        document.getElementById('browseCurrentPathInput').value = res.currentPath;
+        document.getElementById('browseUpBtn').disabled = !res.parentPath;
+        document.getElementById('confirmBrowseBtn').disabled = true;
+        document.getElementById('selectedFilePathText').textContent = 'No file selected';
+        
+        var driveContainer = document.getElementById('driveSelectorContainer');
+        if (res.drives && res.drives.length > 0) {
+            driveContainer.style.display = 'flex';
+            var driveList = document.getElementById('driveList');
+            driveList.innerHTML = '';
+            res.drives.forEach(function(drive) {
+                var btn = document.createElement('button');
+                btn.className = 'sm-btn';
+                btn.textContent = drive;
+                if (res.currentPath.toUpperCase().startsWith(drive.toUpperCase())) {
+                    btn.style.background = 'var(--bg-btn-primary)';
+                    btn.style.borderColor = 'var(--bg-btn-primary)';
+                    btn.style.color = 'var(--text-bright)';
+                }
+                btn.onclick = function() { navigateBrowseToPath(drive + '\\'); };
+                driveList.appendChild(btn);
+            });
+        } else {
+            driveContainer.style.display = 'none';
+        }
+        
+        var list = document.getElementById('browseList');
+        list.innerHTML = '';
+        
+        res.directories.forEach(function(dir) {
+            var div = document.createElement('div');
+            div.style.padding = '4px 8px';
+            div.style.cursor = 'pointer';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.style.gap = '8px';
+            div.style.borderRadius = '3px';
+            div.className = 'browse-item folder';
+            div.innerHTML = '<span style="color: #ffd700; font-size: 14px;">📁</span> <span style="color: var(--text-secondary);">' + escapeHtml(dir.name) + '</span>';
+            div.onclick = function() { navigateBrowseToPath(dir.path); };
+            div.onmouseover = function() { this.style.background = 'var(--bg-hover)'; };
+            div.onmouseout = function() { this.style.background = 'transparent'; };
+            list.appendChild(div);
+        });
+        
+        res.files.forEach(function(file) {
+            var isExe = file.name.toLowerCase().endsWith('.exe');
+            var div = document.createElement('div');
+            div.style.padding = '4px 8px';
+            div.style.cursor = isExe ? 'pointer' : 'default';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.style.gap = '8px';
+            div.style.borderRadius = '3px';
+            div.style.opacity = isExe ? '1' : '0.4';
+            div.className = 'browse-item file' + (isExe ? ' exe-file' : '');
+            
+            var icon = isExe ? '<span style="color: var(--toast-success-border); font-size: 14px;">⚙️</span>' : '<span style="color: var(--text-muted); font-size: 14px;">📄</span>';
+            div.innerHTML = icon + ' <span>' + escapeHtml(file.name) + '</span>';
+            
+            if (isExe) {
+                div.onclick = function() {
+                    document.querySelectorAll('.browse-item.file').forEach(function(el) {
+                        el.style.background = 'transparent';
+                    });
+                    div.style.background = 'var(--bg-active)';
+                    state.browseSelectedFile = file.path;
+                    document.getElementById('selectedFilePathText').textContent = 'Selected: ' + file.path;
+                    document.getElementById('confirmBrowseBtn').disabled = false;
+                };
+                div.ondblclick = function() {
+                    state.browseSelectedFile = file.path;
+                    confirmBrowseSelection();
+                };
+                div.onmouseover = function() { if (state.browseSelectedFile !== file.path) this.style.background = 'var(--bg-hover)'; };
+                div.onmouseout = function() { if (state.browseSelectedFile !== file.path) this.style.background = 'transparent'; };
+            }
+            list.appendChild(div);
+        });
+        
+        if (res.directories.length === 0 && res.files.length === 0) {
+            var div = document.createElement('div');
+            div.style.padding = '12px';
+            div.style.color = 'var(--text-faint)';
+            div.style.textAlign = 'center';
+            div.textContent = 'Empty directory';
+            list.appendChild(div);
+        }
+    } catch (e) {
+        toast('Browse error: ' + e.message, 'error');
+    }
+}
+
+function navigateBrowseUp() {
+    if (state.browseParentPath) {
+        navigateBrowseToPath(state.browseParentPath);
+    }
+}
+
+function confirmBrowseSelection() {
+    var path = state.browseSelectedFile;
+    if (!path) return;
+    var sel = document.getElementById('simSelect');
+    var found = false;
+    for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === path) {
+            found = true;
+            sel.value = path;
+            break;
+        }
+    }
+    if (!found) {
+        var opt = document.createElement('option');
+        opt.value = path;
+        opt.textContent = path.split('\\').pop().split('/').pop() || path;
+        sel.appendChild(opt);
+        sel.value = path;
+    }
+    updateSimIndicator();
+    saveSettings();
+    toast('Sim path set', 'success');
+    closeModal('browseModal');
+}
+
+async function loadProjects() {
+    try {
+        state.projects = await api('GET', '/api/projects');
+        var sel = document.getElementById('projectSelect');
+        sel.innerHTML = '';
+        if (state.projects.length === 0) {
+            var opt = document.createElement('option'); opt.textContent = 'No projects'; opt.disabled = true; sel.appendChild(opt);
+        } else {
+            state.projects.forEach(function(p) { var opt = document.createElement('option'); opt.value = p; opt.textContent = p; sel.appendChild(opt); });
+        }
+        if (state.settings.project_name && state.projects.indexOf(state.settings.project_name) !== -1) sel.value = state.settings.project_name;
+        else if (state.projects.length > 0) sel.value = state.projects[0];
+        state.currentProject = sel.value || '';
+        if (state.currentProject) loadConfigs();
+        else document.getElementById('fileList').innerHTML = '<div class="no-configs-msg">Create or select a project to begin</div>';
+    } catch (e) { console.error('Projects load error:', e); }
+}
+
+async function createProject() {
+    var name = prompt('Enter project name:');
+    if (!name) return;
+    try {
+        await api('POST', '/api/projects', { name: name });
+        toast('Project "' + name + '" created', 'success');
+        await loadProjects();
+        document.getElementById('projectSelect').value = name;
+        state.currentProject = name;
+        await saveSettings(); await loadConfigs();
+    } catch (e) { toast('Error creating project: ' + e.message, 'error'); }
+}
+
+async function renameProject() {
+    if (!state.currentProject) { toast('No project selected', 'error'); return; }
+    var newName = prompt('Rename project "' + state.currentProject + '" to:', state.currentProject);
+    if (!newName || newName === state.currentProject) return;
+    try {
+        await api('PUT', '/api/projects/' + encodeURIComponent(state.currentProject) + '/rename', { newName: newName });
+        toast('Project renamed to "' + newName + '"', 'success');
+        state.currentProject = newName;
+        state.currentFile = null;
+        document.getElementById('editor').value = '';
+        document.getElementById('fileIndicator').textContent = 'No file loaded';
+        document.getElementById('saveStatus').textContent = '';
+        updateHighlight();
+        state.dirty = false;
+        await saveSettings();
+        await loadProjects();
+        document.getElementById('projectSelect').value = newName;
+    } catch (e) { toast('Error renaming project: ' + e.message, 'error'); }
+}
+
+async function deleteProject() {
+    if (!state.currentProject) { toast('No project selected', 'error'); return; }
+    if (!confirm('Are you sure you want to permanently delete the project "' + state.currentProject + '" and all its configs/outputs?')) return;
+    try {
+        await api('DELETE', '/api/projects/' + encodeURIComponent(state.currentProject));
+        toast('Project "' + state.currentProject + '" deleted', 'info');
+        state.currentProject = '';
+        state.currentFile = null;
+        document.getElementById('editor').value = '';
+        document.getElementById('fileIndicator').textContent = 'No file loaded';
+        document.getElementById('saveStatus').textContent = '';
+        updateHighlight();
+        state.dirty = false;
+        state.settings.project_name = '';
+        await saveSettings();
+        await loadProjects();
+    } catch (e) { toast('Error deleting project: ' + e.message, 'error'); }
+}
+
+async function onProjectChange() {
+    state.currentProject = document.getElementById('projectSelect').value;
+    state.currentFile = null;
+    document.getElementById('fileIndicator').textContent = 'No file loaded';
+    document.getElementById('editor').value = '';
+    document.getElementById('saveStatus').textContent = '';
+    updateHighlight();
+    state.dirty = false;
+    await saveSettings(); await loadConfigs();
+}
+
+async function loadConfigs() {
+    var list = document.getElementById('fileList');
+    if (!state.currentProject) { list.innerHTML = '<div class="no-configs-msg">Select a project</div>'; return; }
+    try {
+        state.configs = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs');
+        document.getElementById('configCount').textContent = state.configs.length + ' file' + (state.configs.length !== 1 ? 's' : '');
+        if (state.configs.length === 0) { list.innerHTML = '<div class="no-configs-msg">No config files. Click "+ New" to create one.</div>'; return; }
+        list.innerHTML = '';
+            state.configs.forEach(function(f, idx) {
+                var div = document.createElement('div');
+                div.className = 'file-item';
+                if (state.currentFile && state.currentFile.name === f.name) div.classList.add('active');
+                var escName = f.name.replace(/'/g, "\\'");
+                div.innerHTML = '<span class="icon">&#x1F4C4;</span><span class="filename">' + f.name.replace('.txt', '') + '</span><span class="file-actions">' +
+                    '<button onclick="event.stopPropagation();moveConfigUp(\'' + escName + '\', ' + idx + ')" title="Move up">&#x25B2;</button>' +
+                    '<button onclick="event.stopPropagation();moveConfigDown(\'' + escName + '\', ' + idx + ')" title="Move down">&#x25BC;</button>' +
+                    '<button onclick="event.stopPropagation();duplicateConfigByName(\'' + escName + '\')" title="Duplicate">&#x29C9;</button>' +
+                    '<button onclick="event.stopPropagation();renameConfigByName(\'' + escName + '\')" title="Rename">&#x270E;</button>' +
+                    '<button onclick="event.stopPropagation();deleteConfigByName(\'' + escName + '\')" title="Delete">&#x2715;</button></span>';
+                div.onclick = (function(n) { return function() { loadConfig(n); }; })(f.name);
+                list.appendChild(div);
+            });
+    } catch (e) { list.innerHTML = '<div class="no-configs-msg">Error loading configs</div>'; console.error('Configs load error:', e); }
+}
+
+async function loadConfig(name) {
+    if (state.dirty) {
+        var save = confirm('Save changes to "' + state.currentFile.name + '" before switching?');
+        if (save) {
+            await saveCurrentConfig();
+        } else {
+            if (!confirm('Discard changes and switch?')) return;
+        }
+    }
+    try {
+        var data = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(name));
+        state.currentFile = { name: data.name, content: data.content };
+        document.getElementById('editor').value = data.content;
+        updateHighlight();
+        document.getElementById('fileIndicator').textContent = 'File: ' + data.name;
+        document.getElementById('saveStatus').textContent = '';
+        state.dirty = false;
+        document.querySelectorAll('.file-item').forEach(function(el) {
+            el.classList.remove('active');
+            var fn = el.querySelector('.filename');
+            if (fn && fn.textContent === name.replace('.txt', '')) el.classList.add('active');
+        });
+    } catch (e) { toast('Error loading config: ' + e.message, 'error'); }
+}
+
+async function saveCurrentConfig() {
+    if (!state.currentFile) return;
+    try {
+        await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(state.currentFile.name), { content: document.getElementById('editor').value });
+        state.currentFile.content = document.getElementById('editor').value;
+        state.dirty = false;
+        document.getElementById('saveStatus').textContent = '';
+    } catch (e) { toast('Error saving: ' + e.message, 'error'); }
+}
+
+async function newConfig() {
+    if (!state.currentProject) { toast('Select a project first', 'error'); return; }
+    var name = prompt('Enter config name (e.g., Klee Nicole OL):');
+    if (!name) return;
+    try {
+        var data = await api('PUT', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs', { filename: name });
+        toast('Config "' + data.name + '" created', 'success');
+        await loadConfigs(); await loadConfig(data.name);
+    } catch (e) { toast('Error creating config: ' + e.message, 'error'); }
+}
+
+async function deleteConfigByName(name) {
+    if (!confirm('Delete "' + name + '"?')) return;
+    try {
+        await api('DELETE', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(name));
+        toast('Deleted "' + name + '"', 'info');
+        if (state.currentFile && state.currentFile.name === name) {
+            state.currentFile = null;
+            document.getElementById('editor').value = '';
+            updateHighlight();
+            document.getElementById('fileIndicator').textContent = 'No file loaded';
+            document.getElementById('saveStatus').textContent = '';
+            state.dirty = false;
+        }
+        await loadConfigs();
+    } catch (e) { toast('Error deleting: ' + e.message, 'error'); }
+}
+function deleteConfig() { if (!state.currentFile) { toast('No file selected', 'error'); return; } deleteConfigByName(state.currentFile.name); }
+
+async function renameConfigByName(name) {
+    var newName = prompt('New name:', name.replace('.txt', ''));
+    if (!newName) return;
+    try {
+        var data = await api('PUT', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(name) + '/rename', { newName: newName });
+        toast('Renamed to "' + data.name + '"', 'success');
+        if (state.currentFile && state.currentFile.name === name) state.currentFile.name = data.name;
+        await loadConfigs();
+    } catch (e) { toast('Error renaming: ' + e.message, 'error'); }
+}
+function renameConfig() { if (!state.currentFile) { toast('No file selected', 'error'); return; } renameConfigByName(state.currentFile.name); }
+
+async function moveConfigUp(name, idx) {
+    if (idx <= 0) { toast('Already at the top', 'info'); return; }
+    var prevName = state.configs[idx - 1].name;
+    try {
+        await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/swap', { nameA: prevName, nameB: name });
+        toast('Moved up', 'success');
+        await loadConfigs();
+    } catch (e) { toast('Error moving: ' + e.message, 'error'); }
+}
+
+async function moveConfigDown(name, idx) {
+    if (idx >= state.configs.length - 1) { toast('Already at the bottom', 'info'); return; }
+    var nextName = state.configs[idx + 1].name;
+    try {
+        await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/swap', { nameA: name, nameB: nextName });
+        toast('Moved down', 'success');
+        await loadConfigs();
+    } catch (e) { toast('Error moving: ' + e.message, 'error'); }
+}
+
+async function duplicateConfigByName(name) {
+    try { var data = await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(name) + '/duplicate'); toast('Duplicated to "' + data.name + '"', 'success'); await loadConfigs(); }
+    catch (e) { toast('Error duplicating: ' + e.message, 'error'); }
+}
+function duplicateConfig() { if (!state.currentFile) { toast('No file selected', 'error'); return; } duplicateConfigByName(state.currentFile.name); }
+
+async function showExportModal() {
+    if (!state.currentProject) { toast('Select a project first', 'error'); return; }
+    closeModal('importModal');
+    document.getElementById('exportModal').classList.add('show');
+    document.getElementById('exportText').value = 'Loading...';
+    try { var data = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/export'); document.getElementById('exportText').value = data.content; }
+    catch (e) { document.getElementById('exportText').value = 'Error loading export: ' + e.message; toast('Export error: ' + e.message, 'error'); }
+}
+function copyExport() { var text = document.getElementById('exportText'); text.select(); document.execCommand('copy'); toast('Copied to clipboard!', 'success'); }
+function downloadExport() {
+    var blob = new Blob([document.getElementById('exportText').value], { type: 'text/plain' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = state.currentProject + '_configs_export.txt'; a.click(); URL.revokeObjectURL(blob);
+    toast('Download started', 'success');
+}
+function showImportModal() {
+    if (!state.currentProject) { toast('Select a project first', 'error'); return; }
+    closeModal('exportModal'); document.getElementById('importModal').classList.add('show'); document.getElementById('importText').value = '';
+}
+async function importConfigs() {
+    var content = document.getElementById('importText').value;
+    if (!content) { toast('No content to import', 'error'); return; }
+    try { var data = await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/import', { content: content }); toast('Imported ' + data.imported + ' configs' + (data.skipped > 0 ? ' (' + data.skipped + ' skipped)' : ''), 'success'); closeModal('importModal'); await loadConfigs(); }
+    catch (e) { toast('Import error: ' + e.message, 'error'); }
+}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function getSelectedSimPath() { return document.getElementById('simSelect').value || ''; }
+
+// ========== SIM BUTTON LOADING SPINNERS ==========
+var SIM_BUTTON_SELECTORS = [
+    'button[onclick*="runSelected"]',
+    'button[onclick*="runAll"]',
+    'button[onclick*="optimizeSelected"]',
+    'button[onclick*="optimizeAll"]'
+];
+
+function getActionButtons() {
+    var toolbar = document.getElementById('toolbarContent');
+    if (!toolbar) return [];
+    var buttons = [];
+    SIM_BUTTON_SELECTORS.forEach(function(sel) {
+        var btn = toolbar.querySelector(sel);
+        if (btn) buttons.push(btn);
+    });
+    return buttons;
+}
+
+function setSimButtonsLoading(loading) {
+    var buttons = getActionButtons();
+    buttons.forEach(function(btn) {
+        if (loading) {
+            if (btn.classList.contains('btn-loading')) return;
+            btn.setAttribute('data-orig-text', btn.innerHTML);
+            btn.classList.add('btn-loading');
+            btn.innerHTML = '<span class="btn-loader"></span>';
+        } else {
+            btn.classList.remove('btn-loading');
+            var origText = btn.getAttribute('data-orig-text');
+            if (origText) {
+                btn.innerHTML = origText;
+            }
+        }
+    });
+}
+
+async function runSelected() {
+    var simPath = getSelectedSimPath();
+    if (!simPath) { toast('Add and select a sim executable first', 'error'); return; }
+    var filename = state.currentFile ? state.currentFile.name : null;
+    if (!filename) {
+        var activeItem = document.querySelector('.file-item.active');
+        if (activeItem) { var nameEl = activeItem.querySelector('.filename'); if (nameEl) filename = nameEl.textContent + '.txt'; }
+    }
+    if (!filename) { toast('Select a config from the sidebar first', 'error'); return; }
+    try { var data = await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/run', { filename: filename, gcsimPath: simPath }); state.runId = data.runId; setSimButtonsLoading(true); log('\u25B6 Run started: ' + filename); startPolling(); }
+    catch (e) { toast('Run error: ' + e.message, 'error'); }
+}
+
+async function runAll() {
+    if (!state.currentProject) { toast('Select a project', 'error'); return; }
+    var simPath = getSelectedSimPath();
+    if (!simPath) { toast('Add and select a sim executable first', 'error'); return; }
+    try { var data = await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/run', { gcsimPath: simPath }); state.runId = data.runId; setSimButtonsLoading(true); log('\u25B6\u25B6 Running all configs sequentially...'); startPolling(); }
+    catch (e) { toast('Run error: ' + e.message, 'error'); }
+}
+
+async function optimizeSelected() {
+    var simPath = getSelectedSimPath();
+    if (!simPath) { toast('Add and select a sim executable first', 'error'); return; }
+    var filename = state.currentFile ? state.currentFile.name : null;
+    if (!filename) {
+        var activeItem = document.querySelector('.file-item.active');
+        if (activeItem) { var nameEl = activeItem.querySelector('.filename'); if (nameEl) filename = nameEl.textContent + '.txt'; }
+    }
+    if (!filename) { toast('Select a config from the sidebar first', 'error'); return; }
+    try { var data = await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/optimize', { filename: filename, gcsimPath: simPath }); state.runId = data.runId; setSimButtonsLoading(true); log('\u29E3 Optimize started: ' + filename); startPolling(); }
+    catch (e) { toast('Optimize error: ' + e.message, 'error'); }
+}
+
+async function optimizeAll() {
+    if (!state.currentProject) { toast('Select a project', 'error'); return; }
+    var simPath = getSelectedSimPath();
+    if (!simPath) { toast('Add and select a sim executable first', 'error'); return; }
+    try { var data = await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/optimize', { gcsimPath: simPath }); state.runId = data.runId; setSimButtonsLoading(true); log('\u29E3\u29E3 Optimizing all configs sequentially...'); startPolling(); }
+    catch (e) { toast('Optimize error: ' + e.message, 'error'); }
+}
+
+async function terminateProcesses() {
+    if (!state.runId) { log('No running processes'); return; }
+    try { await api('POST', '/api/runs/' + state.runId + '/terminate'); log('\u25A0 Terminated'); if (state.pollInterval) { clearInterval(state.pollInterval); state.pollInterval = null; } state.runId = null; setSimButtonsLoading(false); }
+    catch (e) { toast('Terminate error: ' + e.message, 'error'); }
+}
+
+function startPolling() {
+    if (state.pollInterval) clearInterval(state.pollInterval);
+    state.pollInterval = setInterval(async function() {
+        if (!state.runId) { clearInterval(state.pollInterval); state.pollInterval = null; return; }
+        try {
+            var data = await api('GET', '/api/runs/' + state.runId);
+            var logEl = document.getElementById('logContent');
+            var newLog = data.log.join('');
+            if (newLog !== logEl.textContent) {
+                var diff = newLog.substring(logEl.textContent.length);
+                if (diff) { logEl.textContent = newLog; logEl.scrollTop = logEl.scrollHeight; }
+            }
+            if (data.status === 'completed') { clearInterval(state.pollInterval); state.pollInterval = null; setSimButtonsLoading(false); toast('All ' + (data.mode === 'optimize' ? 'optimizations' : 'simulations') + ' completed', 'success'); state.runId = null; }
+            else if (data.status === 'terminated') { clearInterval(state.pollInterval); state.pollInterval = null; setSimButtonsLoading(false); state.runId = null; }
+        } catch (e) { console.error('Poll error:', e); }
+    }, 500);
+}
+
+function log(msg) { var el = document.getElementById('logContent'); el.textContent += msg + '\n'; el.scrollTop = el.scrollHeight; }
+function clearLog() { document.getElementById('logContent').textContent = ''; }
+
+var autosaveEnabled = true;
+
+function toggleAutosave() {
+    autosaveEnabled = document.getElementById('autosaveToggle').checked;
+    localStorage.setItem('gcsim_autosave', autosaveEnabled);
+    if (autosaveEnabled && state.currentFile && state.dirty) {
+        saveCurrentConfig();
+    }
+}
+
+function loadAutosavePreference() {
+    var stored = localStorage.getItem('gcsim_autosave');
+    if (stored !== null) {
+        autosaveEnabled = stored === 'true';
+        document.getElementById('autosaveToggle').checked = autosaveEnabled;
+    }
+}
+
+        var splitViewActive = false;
+        var splitLine = -1;
+        var isResizing = false;
+        var startX = 0;
+        var startWidth = 0;
+
+function findSplitLine(text) {
+    var lines = text.split('\n');
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        // Find "active" then the first semicolon after it on the same line
+        var activePos = line.indexOf('active');
+        if (activePos !== -1) {
+            var semicolonPos = line.indexOf(';', activePos);
+            if (semicolonPos !== -1) {
+                return { line: i, col: semicolonPos + 1 }; // Position after the semicolon
+            }
+        }
+    }
+    return -1;
+}
+
+function toggleSplitView() {
+    var wrapper = document.getElementById('editorWrapper');
+    var pane2 = document.getElementById('pane2');
+    var editor2 = document.getElementById('editor2');
+    
+    if (splitViewActive) {
+        // Merge back
+        var text1 = document.getElementById('editor').value;
+        var text2 = editor2.value;
+        document.getElementById('editor').value = text2 + text1;
+        pane2.style.display = 'none';
+        wrapper.classList.remove('split');
+        splitViewActive = false;
+        updateHighlight();
+        state.dirty = true;
+        toast('Split view closed', 'info');
+        return;
+    }
+    
+    var text = document.getElementById('editor').value;
+    var splitInfo = findSplitLine(text);
+    if (splitInfo < 0) {
+        toast('No active(...); line found to split at', 'error');
+        return;
+    }
+    
+    var splitIndex = 0;
+    var lines = text.split('\n');
+    for (var i = 0; i < splitInfo.line; i++) {
+        splitIndex += lines[i].length + 1;
+    }
+    splitIndex += splitInfo.col;
+    
+    var part1 = text.substring(0, splitIndex);
+    var part2 = text.substring(splitIndex);
+    
+    document.getElementById('editor').value = part2;
+    editor2.value = part1;
+    
+    pane2.style.display = 'block';
+    wrapper.classList.add('split');
+    splitViewActive = true;
+    
+    updateHighlight();
+    updateHighlight2();
+    state.dirty = true;
+    toast('Split view opened', 'info');
+}
+
+function updateHighlight2() {
+    var editor2 = document.getElementById('editor2');
+    var highlight2 = document.getElementById('editorHighlight2');
+    highlight2.innerHTML = tokenize(editor2.value);
+}
+
+document.getElementById('editor').addEventListener('input', function() {
+    updateHighlight();
+    state.dirty = true;
+    if (state.editorTimeout) clearTimeout(state.editorTimeout);
+    if (autosaveEnabled) {
+        state.editorTimeout = setTimeout(function() { if (state.currentFile) saveCurrentConfig(); }, 1000);
+    }
+});
+document.getElementById('editor').addEventListener('scroll', syncEditorScroll);
+
+document.getElementById('editor2').addEventListener('input', function() {
+    updateHighlight2();
+    state.dirty = true;
+    if (state.editorTimeout) clearTimeout(state.editorTimeout);
+    if (autosaveEnabled) {
+        state.editorTimeout = setTimeout(function() { if (state.currentFile) saveCurrentConfig(); }, 1000);
+    }
+});
+document.getElementById('editor2').addEventListener('scroll', function() {
+    var editor2 = document.getElementById('editor2');
+    var highlight2 = document.getElementById('editorHighlight2');
+    highlight2.scrollTop = editor2.scrollTop;
+    highlight2.scrollLeft = editor2.scrollLeft;
+});
+
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if (state.currentFile) saveCurrentConfig(); }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') { e.preventDefault(); formatConfig(); }
+});
+
+// Resizer functionality
+document.getElementById('resizer').addEventListener('mousedown', function(e) {
+    isResizing = true;
+    startX = e.clientX;
+    startWidth = document.getElementById('pane1').getBoundingClientRect().width;
+    document.body.style.cursor = 'col-resize';
+    e.preventDefault();
+});
+
+document.addEventListener('mousemove', function(e) {
+    if (!isResizing) return;
+    var diff = e.clientX - startX;
+    var newWidth = startWidth + diff;
+    var wrapper = document.getElementById('editorWrapper');
+    var wrapperWidth = wrapper.getBoundingClientRect().width;
+    var minWidth = 100;
+    var maxWidth = wrapperWidth - 100;
+    
+    if (newWidth < minWidth) newWidth = minWidth;
+    if (newWidth > maxWidth) newWidth = maxWidth;
+    
+    document.getElementById('pane1').style.width = newWidth + 'px';
+    document.getElementById('pane2').style.width = (wrapperWidth - newWidth - 4) + 'px'; // 4px for resizer
+});
+
+document.addEventListener('mouseup', function() {
+    if (isResizing) {
+        isResizing = false;
+        document.body.style.cursor = 'default';
+    }
+});
+
+async function init() {
+    loadAutosavePreference();
+    // Apply saved background theme
+    applyBgTheme(state.currentBgTheme);
+    // Apply saved text theme
+    applyTextTheme(state.currentTextTheme);
+    // Apply saved font size
+    applyFontSize(state.editorFontSize);
+    await loadSettings();
+    await loadProjects();
+    updateHighlight();
+}
+init();
+</script>
+</body>
+</html>

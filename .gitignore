@@ -1,0 +1,23 @@
+# Node modules
+node_modules/
+
+# Data/config JSON files
+config.json
+serve_data.json.gz
+serve_sample.json.gz
+
+# Project data
+projects/
+clients/
+
+# Linter rules
+.clinerules</arg_value>
+<task_progress>
+- [x] Add .gitignore for node_modules and JSON files
+- [x] Refine .gitignore to exclude data JSON files but keep package files
+- [x] Include clients and projects directories in .gitignore
+- [x] Add .clinerules to .gitignore
+</task_progress>
+</write_to_file>
+</tool_call>
+</assistant>

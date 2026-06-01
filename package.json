@@ -1,0 +1,15 @@
+{
+  "name": "genshin-sim-manager",
+  "version": "1.0.0",
+  "description": "Web-based gcsim configuration manager",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ini": "^4.1.1",
+    "uuid": "^9.0.0"
+  }
+}
