@@ -33,14 +33,15 @@ Alternatively, if you use Git, clone the repo by running: `git clone https://git
   npm -v
   ```
 
-**Launch the Application:** 
+**Launch the Application:**
 
-* Windows: Double-click `Genshin Sim Manager.bat` inside the extracted program folder. This script will automatically verify dependencies, run `npm install` if necessary, and boot up the local server.
-* Linux / macOS: From the project root, install Node packages and run the server manually by executing:
-  ```bash
-  npm install
-  npm start
-  ```
+Windows: Double-click Genshin Sim Manager.bat inside the extracted program folder. This self-healing script will automatically verify dependencies, install pnpm globally via npm if missing, run pnpm install, and boot up the local server.
+
+Linux / macOS: Ensure pnpm is installed (npm install -g pnpm), then from the project root run:
+
+Bash
+pnpm install
+pnpm start
 
 **Open the UI:**
 * After startup, open the manager in your browser at: `http://localhost:3000`
@@ -100,7 +101,7 @@ Click the **Gear Icon (⚙)** to customize your workspace environment:
 * **Character build graphics:** Generate visual infographics of your simulated character builds.
 * **.GOOD file support for builds:** Import character and artifact data directly from popular Genshin scanners (Genshin Optimizer, etc.).
 * **Split view partition adjuster:** Dynamically adjust the partition so we can make one side bigger than the other.
-* **One-Click Modification:** Quick actions to copy the selected config and set the first character to C6 (instantly testing a character at Constellation 6).
+* **One-Click Modification:** Quick actions to copy the selected config and set the first character to every every constellation from c1 to c6.
 
 ## 💾 Notes & Troubleshooting
 
