@@ -15,7 +15,9 @@ var state = {
     currentBgTheme: localStorage.getItem('gcsim_bg') || 'default',
     currentTextTheme: localStorage.getItem('gcsim_text') || 'light-text',
     editorFontSize: parseInt(localStorage.getItem('gcsim_fontsize')) || 13,
-    autoOpenViewer: localStorage.getItem('gcsim_auto_open_viewer') === 'true'
+    autoOpenViewer: localStorage.getItem('gcsim_auto_open_viewer') === 'true',
+    configDps: {},        // configName (without .txt) -> DPS value
+    sortMode: 'original'  // 'original', 'alphabetical', or 'dps'
 };
 
 var SECTION_NAMES = new Set([
@@ -29,7 +31,8 @@ window.aceEditor = ace.edit("editor");
         // Fallback to 13 if state.editorFontSize isn't loaded yet
         fontSize: (state.editorFontSize || 13) + "px", 
         showPrintMargin: false,
-        wrap: true
+        wrap: true,
+        indentedSoftWrap: false
     });
 
     window.aceEditor2 = ace.edit("editor2");
@@ -38,7 +41,8 @@ window.aceEditor = ace.edit("editor");
     window.aceEditor2.setOptions({
         fontSize: (state.editorFontSize || 13) + "px",
         showPrintMargin: false,
-        wrap: true
+        wrap: true,
+        indentedSoftWrap: false
     });
 
     // Bind Autosave to Ace's change event
@@ -500,6 +504,8 @@ async function loadConfigs() {
         state.configs = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs');
         document.getElementById('configCount').textContent = state.configs.length + ' file' + (state.configs.length !== 1 ? 's' : '');
         if (state.configs.length === 0) { list.innerHTML = '<div class="no-configs-msg">No config files. Click "+ New" to create one.</div>'; return; }
+        // Load DPS data for sidebar display
+        await loadProjectDps();
         renderFileList();
     } catch (e) { list.innerHTML = '<div class="no-configs-msg">Error loading configs</div>'; }
 }
@@ -555,6 +561,42 @@ function matchesSearch(config) {
     return content.includes(q);
 }
 
+// ========== DPS DATA TRACKING ==========
+async function loadProjectDps() {
+    if (!state.currentProject) return;
+    try {
+        const results = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/results');
+        state.configDps = {};
+        results.forEach(function(r) {
+            // r.configName is the name without extension
+            state.configDps[r.configName] = r.dps;
+        });
+    } catch(e) {
+        // Silently fail - DPS data is non-critical
+    }
+}
+
+function onSortModeChange() {
+    var select = document.getElementById('sortSelect');
+    state.sortMode = select.value;
+    var modeText = {
+        'original': 'original order',
+        'alphabetical': 'alphabetical (A-Z)',
+        'dps': 'DPS (descending)'
+    }[state.sortMode] || 'original order';
+    toast('Sorting by ' + modeText, 'info');
+    renderFileList();
+}
+
+function getDpsDisplay(name) {
+    var key = name.replace('.txt', '');
+    var dps = state.configDps[key];
+    if (dps !== undefined && dps > 0) {
+        return '<span class="dps-badge">' + Math.round(dps).toLocaleString() + '</span>';
+    }
+    return '';
+}
+
 // ========== RENDER FILE LIST ==========
 function renderFileList() {
     var list = document.getElementById('fileList');
@@ -563,12 +605,36 @@ function renderFileList() {
         return;
     }
 
-    // Sort: pinned first
-    var sorted = state.configs.slice().sort(function(a, b) {
-        var ap = getMeta(a.name).pinned ? 0 : 1;
-        var bp = getMeta(b.name).pinned ? 0 : 1;
-        return ap - bp;
-    });
+    var sorted = state.configs.slice();
+    
+    if (state.sortMode === 'dps') {
+        // Sort by DPS descending, then by pinned
+        sorted.sort(function(a, b) {
+            var ap = getMeta(a.name).pinned ? 0 : 1;
+            var bp = getMeta(b.name).pinned ? 0 : 1;
+            if (ap !== bp) return ap - bp;
+            var keyA = a.name.replace('.txt', '');
+            var keyB = b.name.replace('.txt', '');
+            var dpsA = state.configDps[keyA] || 0;
+            var dpsB = state.configDps[keyB] || 0;
+            return dpsB - dpsA;
+        });
+    } else if (state.sortMode === 'alphabetical') {
+        // Sort alphabetically (A-Z), then by pinned
+        sorted.sort(function(a, b) {
+            var ap = getMeta(a.name).pinned ? 0 : 1;
+            var bp = getMeta(b.name).pinned ? 0 : 1;
+            if (ap !== bp) return ap - bp;
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        });
+    } else {
+        // Sort: pinned first, then original order
+        sorted.sort(function(a, b) {
+            var ap = getMeta(a.name).pinned ? 0 : 1;
+            var bp = getMeta(b.name).pinned ? 0 : 1;
+            return ap - bp;
+        });
+    }
 
     var filtered = sorted.filter(matchesSearch);
     if (filtered.length === 0) {
@@ -599,12 +665,11 @@ function renderFileList() {
             checkboxHtml +
             '<span class="icon">📄</span>' +
             '<span class="filename">' + f.name.replace('.txt', '') + '</span>' +
+            getDpsDisplay(f.name) +
             renderTagChips(f.name) +
             '<span class="file-actions">' +
                 '<button onclick="event.stopPropagation();togglePin(\'' + escName + '\')" title="Pin">' + (meta.pinned ? '📌' : '📍') + '</button>' +
                 '<button onclick="event.stopPropagation();showTagMenu(\'' + escName + '\', this)" title="Tag">🏷</button>' +
-                '<button onclick="event.stopPropagation();moveConfigUp(\'' + escName + '\', ' + origIdx + ')" title="Up">▲</button>' +
-                '<button onclick="event.stopPropagation();moveConfigDown(\'' + escName + '\', ' + origIdx + ')" title="Down">▼</button>' +
                 '<button onclick="event.stopPropagation();duplicateConfigByName(\'' + escName + '\')" title="Duplicate">⧉</button>' +
                 '<button onclick="event.stopPropagation();renameConfigByName(\'' + escName + '\')" title="Rename">✎</button>' +
                 '<button onclick="event.stopPropagation();deleteConfigByName(\'' + escName + '\')" title="Delete">✕</button>' +
@@ -764,7 +829,14 @@ async function loadConfig(name) {
 async function saveCurrentConfig() {
     if (!state.currentFile) return;
     try {
-        await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(state.currentFile.name), { content: window.aceEditor.getValue() });
+        // If split view is active, merge content from both editors before saving
+        var contentToSave = window.aceEditor.getValue();
+        if (splitViewActive && window.aceEditor2) {
+            var text1 = window.aceEditor.getValue();
+            var text2 = window.aceEditor2.getValue();
+            contentToSave = text2 + text1;  // merge editor2 + editor1
+        }
+        await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(state.currentFile.name), { content: contentToSave });
         state.currentFile.content = document.getElementById('editor').value;
         state.dirty = false;
         document.getElementById('saveStatus').textContent = '';
@@ -1054,6 +1126,12 @@ function startPolling() {
                 setSimButtonsLoading(false); 
                 if (data.status === 'completed') {
                     toast('All ' + (data.mode === 'optimize' ? 'optimizations' : 'simulations') + ' completed', 'success');
+                    // Refresh DPS data in sidebar
+                    setTimeout(function() {
+                        loadProjectDps().then(function() {
+                            renderFileList();
+                        });
+                    }, 500);
                     if (state.autoOpenViewer) {
                         // Find the latest result file and auto-open the viewer
                         setTimeout(function() {
@@ -1131,6 +1209,9 @@ function toggleSplitView() {
         // Refresh Ace editor layout
         if (window.aceEditor) window.aceEditor.resize();
         if (window.aceEditor2) window.aceEditor2.resize();
+        
+        // Explicitly save the merged content to ensure no changes are lost
+        if (state.currentFile) saveCurrentConfig();
         
         toast('Split view closed', 'info');
         return;

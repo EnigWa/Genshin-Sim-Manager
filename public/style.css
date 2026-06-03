@@ -256,6 +256,21 @@
             border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 8px; white-space: nowrap;
         }
         .sidebar-header .subtitle { font-weight: normal; font-size: 11px; color: var(--text-muted); }
+.sort-dropdown {
+    background: transparent;
+    border: 1px solid var(--border-input);
+    color: var(--text-secondary);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 1.4;
+    font-family: inherit;
+    transition: background 0.15s, border-color 0.15s;
+}
+.sort-dropdown:hover { background: var(--bg-hover); }
+.sort-dropdown:focus { outline: none; border-color: var(--border-active); background: var(--bg-hover); }
         .sidebar-header .hide-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 0 4px; }
         .sidebar-header .hide-btn:hover { color: var(--icon-hover); }
         .file-list-container { flex: 1; overflow-y: auto; min-height: 0; }
@@ -554,3 +569,17 @@
 .results-table tr:hover td { background: var(--bg-hover); }
 .action-btn { padding: 3px 8px; background: var(--bg-btn-primary); color: var(--text-bright); border: none; border-radius: 3px; cursor: pointer; font-size: 11px; }
 .action-btn:hover { background: var(--bg-btn-primary-hover); }
+.dps-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: bold;
+    color: var(--toast-success-border);
+    background: rgba(78, 201, 176, 0.1);
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+    flex-shrink: 0;
+    font-family: monospace;
+    line-height: 1.4;
+}

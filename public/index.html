@@ -12,7 +12,15 @@
 <div class="app-container">
     <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <div><div>Configs</div><div class="subtitle" id="configCount">0 files</div></div>
+        <div style="display:flex;align-items:center;gap:6px;">
+            <div>Configs</div>
+            <div class="subtitle" id="configCount" style="font-size:10px;">0 files</div>
+            <select id="sortSelect" class="sort-dropdown" onchange="onSortModeChange()">
+                <option value="original">Default</option>
+                <option value="alphabetical">A-Z</option>
+                <option value="dps">DPS</option>
+            </select>
+        </div>
         <button class="hide-btn" onclick="toggleSidebar()" title="Hide sidebar">&#9668;</button>
     </div>
     <div class="sidebar-search">

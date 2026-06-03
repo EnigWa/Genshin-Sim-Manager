@@ -709,6 +709,9 @@ function openUrl(url) {
 
 function runSimulations(files, gcsimPath, outputsDir, runId, mode,settings) {
     const maxWorkers = Math.max(1, os.cpus().length - 1); 
+    const projectDir = path.dirname(outputsDir);
+    const targetSampleDir = path.join(projectDir, 'sample');
+    if (!fs.existsSync(targetSampleDir)) fs.mkdirSync(targetSampleDir, { recursive: true });
     runningProcesses[runId] = { status: 'running', current: files.length > 1 ? 'Running Multiple...' : path.basename(files[0]), log: [], mode, childProcesses: new Set() };
     
     let index = 0;
@@ -733,26 +736,30 @@ function runSimulations(files, gcsimPath, outputsDir, runId, mode,settings) {
         runningProcesses[runId].log.push(`\n[${baseName}] Starting...\n`);
         
         let cmd;
+        let execOptions = { timeout: 300000, maxBuffer: 1024 * 1024 * 50 };
+        
         if (mode === 'optimize') {
-    const optOutPath = path.join(outputsDir, `${baseName}_opt.json`);
+    const optOutPath = `${baseName}_opt.json`;
     
     // Construct the options string
-    const s = settings; // Assuming you passed settings into this function
+    const s = settings;
     const optParams = [
         `total_liquid_substats=${s.opt_liquid || 20}`,
         `indiv_liquid_cap=${s.opt_cap || 10}`,
         `fixed_substats_count=${s.opt_fixed || 2}`,
         `fine_tune=${s.opt_tune !== undefined ? s.opt_tune : 1}`,
-        `show_substat_scalars=1` // Defaulting to 1 as per docs
+        `show_substat_scalars=1`
     ].join(';');
 
     cmd = `"${gcsimPath}" -c "${filePath}" -out "${optOutPath}" -substatOptimFull -options="${optParams}"`;
+    execOptions.cwd = targetSampleDir;
 } else {
-            const outPath = path.join(outputsDir, `${baseName}.json`);
-            cmd = `"${gcsimPath}" -c "${filePath}" -out "${outPath}"`;
+            const outPath = `${baseName}.json`;
+            cmd = `"${gcsimPath}" -c "${filePath}" -out "${outPath}" -sample="sample.json" -sampleMinDps="sample_min.json" -sampleMaxDps="sample_max.json" -gz`;
+            execOptions.cwd = targetSampleDir;
         }
         
-        const proc = exec(cmd, { timeout: 300000, maxBuffer: 1024 * 1024 * 50 }, (err, stdout, stderr) => {
+        const proc = exec(cmd, execOptions, (err, stdout, stderr) => {
             if (runningProcesses[runId]) runningProcesses[runId].childProcesses.delete(proc);
             if (err) runningProcesses[runId].log.push(`\n[${baseName}] Error: ${stderr}\n`);
             else runningProcesses[runId].log.push(`\n[${baseName}] Completed\n`);
