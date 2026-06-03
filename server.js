@@ -34,7 +34,7 @@ viewerApp.get('/data', (req, res) => {
     
     const raw = fs.readFileSync(activeViewerFile);
     try {
-        // Change gunzipSync to unzipSync here as well
+        // rip gunzip unzip is my new bestie
         const uncompressed = zlib.unzipSync(raw);
         res.setHeader('Content-Type', 'application/json');
         res.send(uncompressed);
@@ -628,15 +628,15 @@ app.post('/api/runs/:runId/terminate', (req, res) => {
 function readGcsimJson(filePath) {
     const raw = fs.readFileSync(filePath);
     try { 
-        // 1. Try standard decompression (handles both .gz and zlib formats)
+        //ZLIP GOO BUUUUUUUUUURRRRRRRRRRRRRR
         return JSON.parse(zlib.unzipSync(raw).toString('utf8')); 
     } 
     catch (e1) { 
         try {
-            // 2. Fallback: maybe the file is just raw uncompressed JSON
+            //fallback maybe the file is just raw uncompressed JSON ewww
             return JSON.parse(raw.toString('utf8')); 
         } catch (e2) {
-            // 3. Prevent total server crash if a file got corrupted
+            //Prevent total server crash if a file got corrupted also how tf did it...
             throw new Error(`Failed to parse ${path.basename(filePath)}. File may be corrupted.`);
         }
     }
@@ -650,7 +650,7 @@ app.get('/api/projects/:project/results/:filename', (req, res) => {
     let requestedName = req.params.filename;
     let filePath = path.join(outputsDir, requestedName);
     
-    // Bulletproof matching: if the exact file doesn't exist, check alternative extensions
+    // MATCH MATCH matching: if the exact file doesn't exist, check alternative extensions
     if (!fs.existsSync(filePath)) {
         if (requestedName.endsWith('.gz')) {
             // Requested .gz, but maybe it saved as uncompressed .json
