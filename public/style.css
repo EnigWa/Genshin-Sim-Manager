@@ -583,3 +583,305 @@
     font-family: monospace;
     line-height: 1.4;
 }
+/* Added styles for Compare Mode Labels and Multi-Select checkboxes */
+.editor-pane-label {
+    position: absolute; 
+    top: 2px; 
+    right: 6px; 
+    font-size: 10px; 
+    color: var(--text-faint);
+    pointer-events: none; 
+    z-index: 3; 
+    opacity: 0.6;
+    background: var(--bg-editor); /* Helps it stand out if overlapping text */
+    padding: 0 4px;
+    border-radius: 2px;
+}
+.results-table th, .results-table td {
+    vertical-align: middle;
+}
+.results-table input[type="checkbox"] {
+    accent-color: var(--bg-btn-primary);
+    cursor: pointer;
+}
+/* ========== NATIVE GCSIM TIMELINE VISUALIZER ========== */
+.sample-modal-flex-container {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    min-height: 85vh; /* fill the modal */
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: #242933;
+}
+
+.sample-timeline-wrapper {
+    background: #1e2227;
+    color: #e5e9f0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    border-right: 4px solid #14171a;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 800px; /* Forces a scrollbar if you open a lot of them side-by-side */
+}
+
+.sample-timeline-title {
+    background: #2e3440;
+    padding: 10px 14px;
+    font-weight: bold;
+    font-size: 14px;
+    border-bottom: 1px solid #3b4252;
+    color: #eceff4;
+    flex-shrink: 0;
+}
+
+.timeline-scroll-area {
+    overflow-x: auto;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.timeline-header {
+    display: grid;
+    grid-template-columns: 80px minmax(180px, 1fr) repeat(4, minmax(220px, 2fr));
+    background: #3b4252;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid #4c566a;
+}
+
+.timeline-header > div {
+    padding: 10px;
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+    border-right: 1px solid #4c566a;
+    color: #d8dee9;
+}
+
+.timeline-row {
+    display: grid;
+    grid-template-columns: 80px minmax(180px, 1fr) repeat(4, minmax(220px, 2fr));
+    border-bottom: 1px solid #3b4252;
+    transition: background 0.1s;
+}
+
+.timeline-row:hover { background: #2e3440; }
+
+.timeline-col {
+    padding: 6px;
+    border-right: 1px solid #3b4252;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.frame-col {
+    font-size: 11px;
+    color: #aeb5be;
+    text-align: right;
+    padding-right: 10px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    justify-content: flex-start;
+}
+
+.timeline-event {
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    word-break: break-word;
+}
+
+.timeline-event .event-logs {
+    font-size: 10px;
+    opacity: 0.85;
+    margin-top: 4px;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+/* ========== NATIVE TIMELINE FILTERS ========== */
+.timeline-filter-panel {
+    position: absolute;
+    top: 54px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-modal);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    z-index: 2000;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+    width: 460px;
+}
+
+.tl-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.tl-filter-label {
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    color: var(--text-secondary);
+}
+.tl-filter-label input[type="checkbox"] {
+    accent-color: var(--bg-btn-primary);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+.tl-preset-row {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+}
+
+/* Filter Label Colors */
+.tl-color-red { color: #f48771; }
+.tl-color-blue { color: #5c9cff; }
+.tl-color-teal { color: #4ec9b0; }
+.tl-color-purple { color: #d169b6; }
+.tl-color-orange { color: #d4a065; }
+
+/* ========== NATIVE GCSIM TIMELINE VISUALIZER ========== */
+.sample-modal-flex-container {
+    display: flex;
+    flex-direction: row;
+    min-height: 100%;
+    width: max-content; /* key: lets content define width so h-scroll works */
+    background: #242933;
+}
+
+.sample-timeline-wrapper {
+    background: #1e2227;
+    color: #e5e9f0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    border-right: 4px solid #14171a;
+    display: flex;
+    flex-direction: column;
+    width: 1000px;      /* fixed width per panel */
+    flex-shrink: 0;
+}
+
+.sample-timeline-title {
+    background: #2e3440;
+    padding: 10px 14px;
+    font-weight: bold;
+    font-size: 14px;
+    border-bottom: 1px solid #3b4252;
+    color: #eceff4;
+    flex-shrink: 0;
+}
+
+.timeline-scroll-area {
+    overflow-x: auto;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.timeline-header {
+    display: grid;
+    grid-template-columns: 75px minmax(140px, 1fr) repeat(4, minmax(170px, 1.4fr));
+    background: #3b4252;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid #4c566a;
+    min-width: 950px;
+}
+
+.timeline-header > div {
+    padding: 10px;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    border-right: 1px solid #4c566a;
+    color: #d8dee9;
+}
+
+.timeline-row {
+    display: grid;
+    grid-template-columns: 75px minmax(140px, 1fr) repeat(4, minmax(170px, 1.4fr));
+    border-bottom: 1px solid #3b4252;
+    transition: background 0.1s;
+    min-width: 950px;
+}
+
+.timeline-row:hover { background: #2e3440; }
+
+.timeline-col {
+    padding: 6px;
+    border-right: 1px solid #3b4252;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.frame-col {
+    font-size: 11px;
+    color: #aeb5be;
+    text-align: right;
+    padding-right: 10px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    justify-content: flex-start;
+}
+
+.timeline-event {
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    word-break: break-word;
+}
+
+.timeline-event .event-logs {
+    font-size: 10px;
+    opacity: 0.85;
+    margin-top: 4px;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+/* Hide scrollbars EXCEPT for the timeline modal body */
+::-webkit-scrollbar { width: 0; height: 0; }
+
+#sampleModalContent::-webkit-scrollbar {
+    width: 8px;
+    height: 12px;  /* thick horizontal scrollbar for easy dragging */
+}
+#sampleModalContent::-webkit-scrollbar-track {
+    background: #14171a;
+    border-radius: 6px;
+}
+#sampleModalContent::-webkit-scrollbar-thumb {
+    background: #4c566a;
+    border-radius: 6px;
+    border: 2px solid #14171a;
+}
+#sampleModalContent::-webkit-scrollbar-thumb:hover {
+    background: #81a1c1;
+}
+#sampleModalContent::-webkit-scrollbar-corner {
+    background: #14171a;
+}
+
+/* Also show scrollbar on individual timeline scroll areas */
+.timeline-scroll-area::-webkit-scrollbar { width: 6px; height: 6px; }
+.timeline-scroll-area::-webkit-scrollbar-track { background: #1e2227; }
+.timeline-scroll-area::-webkit-scrollbar-thumb { background: #4c566a; border-radius: 3px; }
+.timeline-scroll-area::-webkit-scrollbar-thumb:hover { background: #81a1c1; }

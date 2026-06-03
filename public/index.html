@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <title>Genshin Sim Manager</title>
-     <link rel="stylesheet" href="style.css">
-    
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="app-container">
@@ -70,7 +68,6 @@
     <button class="btn-settings" onclick="showSettingsModal()" title="Manage Runtimes">&#9881;</button>
 </div>
                 <div class="toolbar-divider"></div>
-                <!-- <button class="btn-secondary" onclick="validateSelected()" style="margin-right: 8px;">&#10004; Validate</button> -->
                 <button onclick="runSelected()">&#9654; Run</button>
                 <button onclick="runAll()">&#9654;&#9654; Run All</button>
                 <button class="btn-opt" onclick="optimizeSelected()">Optimize</button>
@@ -99,25 +96,25 @@
                         <input type="checkbox" id="autosaveToggle" checked onchange="toggleAutosave()" style="cursor: pointer;">
                         Autosave
                     </label>
-                    <button class="format-btn" onclick="toggleSplitView()" title="Split view at active(;)">&#x2194; Split</button>
+                    <button class="format-btn" id="closeSplitBtn" style="display:none; color:var(--toast-error-border); border-color:rgba(244,135,113,0.4);" onclick="closeSplit()" title="Close side pane">✕ Close Split</button>
+                    <button class="format-btn" onclick="toggleSplitView()" title="Split view at active(;)">&#x2194; Split File</button>
                     <button class="format-btn" onclick="formatConfig()" title="Auto-format config">Format</button>
                     <span class="status" id="saveStatus"></span>
                 </span>
             </div>
             <div class="editor-wrapper" id="editorWrapper">
-    <div class="editor-pane" id="pane1">
-        <!-- Ace requires a div, not a textarea -->
-        <div id="editor" style="width: 100%; height: 100%;"></div>
-        <div class="editor-pane-label">Config (from active)</div>
-    </div>
-    
-    <div class="resizer" id="resizer" style="display:none;"></div>
-    
-    <div class="editor-pane" id="pane2" style="display:none;">
-        <div id="editor2" style="width: 100%; height: 100%;"></div>
-        <div class="editor-pane-label">Characters / Team</div>
-    </div>
-</div>
+                <div class="editor-pane" id="pane1">
+                    <div id="editor" style="width: 100%; height: 100%;"></div>
+                    <div class="editor-pane-label" id="pane1Label"></div>
+                </div>
+                
+                <div class="resizer" id="resizer" style="display:none;"></div>
+                
+                <div class="editor-pane" id="pane2" style="display:none;">
+                    <div id="editor2" style="width: 100%; height: 100%;"></div>
+                    <div class="editor-pane-label" id="pane2Label"></div>
+                </div>
+            </div>
         </div>
 
         <div class="log-area" id="logArea">
@@ -280,7 +277,10 @@
             <p style="margin-top: 12px;"><strong>3. Add configs</strong><br>
             Click <strong>+ New</strong> in the sidebar to create config files, then write or paste your sim config in the editor.</p>
 
-            <p style="margin-top: 12px;"><strong>4. Run or Optimize</strong><br>
+            <p style="margin-top: 12px;"><strong>4. Compare Multiple Configs</strong><br>
+            Hover over a config in the sidebar and click the ◫ button to open it in a secondary pane side-by-side.</p>
+
+            <p style="margin-top: 12px;"><strong>5. Run or Optimize</strong><br>
             Select a config in the sidebar and click <strong>Run</strong> or <strong>Optimize</strong>. Use <strong>Stop</strong> to cancel.</p>
 
             <p style="margin-top: 12px; color: var(--text-muted); font-size: 12px;">Results will seamlessly and automatically open a browser window displaying the gcsim viewer UI.</p>
@@ -349,6 +349,7 @@
             <table class="results-table">
                 <thead>
                     <tr>
+                        <th style="width: 24px; padding-right:0;"><input type="checkbox" id="selectAllResults" onclick="toggleAllResults(this)"></th>
                         <th>Config</th>
                         <th>Mode</th>
                         <th>Mean DPS</th>
@@ -361,9 +362,48 @@
         <div class="modal-footer" style="justify-content:space-between;">
             <span style="font-size:11px;color:var(--text-muted);" id="resultCount"></span>
             <div>
-                <button class="btn-danger" onclick="clearResults()">🗑 Clear All Results</button>
+                <button class="btn-primary" onclick="viewNativeSamples()">View Sample Timeline</button>
+                <button class="btn-primary" onclick="viewSelectedResults()">Open gcsim.app</button>
+                <button class="btn-danger" onclick="clearResults()">🗑 Clear All</button>
                 <button class="btn-secondary" onclick="closeModal('resultsModal')">Close</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- NATIVE VIEWER MODAL -->
+<div class="modal-overlay" id="sampleModal">
+    <div class="modal" style="width: 95vw; height: 95vh; max-width: none; position: relative; display: flex; flex-direction: column;">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap: 16px;">
+                <h3 style="margin: 0;">Sample Viewer</h3>
+                <button class="btn-secondary" style="font-size: 11px; padding: 4px 10px;" onclick="toggleFilterPanel()">⚙️ Log Options</button>
+                <label style="font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="syncScrollCb" checked style="accent-color: var(--bg-btn-primary); cursor: pointer;">
+                    Sync Vertical Scroll
+                </label>
+            </div>
+            <button onclick="closeModal('sampleModal')" style="font-size:20px; cursor:pointer;">&times;</button>
+        </div>
+        
+        <!-- Log Options Floating Panel -->
+        <div id="timelineFilterPanel" class="timeline-filter-panel" style="display: none;">
+            <h4 style="margin-bottom: 12px; font-size: 13px; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Log Options</h4>
+            <div class="tl-filter-grid" id="tlFilterGrid">
+                <!-- CHECKYBOXY POPULATED BY JS PLEASE JS DONT MESS UP ILL KMS -->
+            </div>
+            <div class="tl-preset-row">
+                <button class="action-btn" style="background:var(--bg-button); border:1px solid var(--border-input);" onclick="applyTimelinePreset('Simple')">Simple</button>
+                <button class="action-btn" style="background:var(--bg-active);" onclick="applyTimelinePreset('Advanced')">Advanced</button>
+                <button class="action-btn" style="background:var(--bg-button); border:1px solid var(--border-input);" onclick="applyTimelinePreset('Verbose')">Verbose</button>
+                <button class="action-btn" style="background:var(--bg-button); border:1px solid var(--border-input);" onclick="applyTimelinePreset('Debug')">Debug</button>
+                <button class="btn-danger action-btn" onclick="applyTimelinePreset('Clear')">Clear</button>
+                <button class="action-btn" style="background:var(--bg-button); border:1px solid var(--border-input); margin-left:auto;" onclick="toggleFilterPanel()">Close</button>
+            </div>
+        </div>
+
+        <div class="modal-body" id="sampleModalContent" style="padding: 0; background: #242933; overflow-x: auto; overflow-y: auto; position: relative; flex: 1; min-height: 0;">
+            <!-- Timelines populate here Ffs -->
         </div>
     </div>
 </div>

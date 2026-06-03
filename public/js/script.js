@@ -1,7 +1,10 @@
-
 var state = {
     currentProject: '',
     currentFile: null,
+    currentFile2: null,     // Track secondary file for compare mode
+    splitMode: 'none',      // 'none', 'split-active', 'compare'
+    dirty2: false,
+    editorTimeout2: null,
     configs: [],
     settings: { project_name: '' },
     configMeta: JSON.parse(localStorage.getItem('gcsim_meta') || '{}'),
@@ -16,8 +19,8 @@ var state = {
     currentTextTheme: localStorage.getItem('gcsim_text') || 'light-text',
     editorFontSize: parseInt(localStorage.getItem('gcsim_fontsize')) || 13,
     autoOpenViewer: localStorage.getItem('gcsim_auto_open_viewer') === 'true',
-    configDps: {},        // configName (without .txt) -> DPS value
-    sortMode: 'original'  // 'original', 'alphabetical', or 'dps'
+    configDps: {},
+    sortMode: 'original'
 };
 
 var SECTION_NAMES = new Set([
@@ -28,7 +31,6 @@ window.aceEditor = ace.edit("editor");
     
     window.aceEditor.session.setMode("ace/mode/gcsim");
     window.aceEditor.setOptions({
-        // Fallback to 13 if state.editorFontSize isn't loaded yet
         fontSize: (state.editorFontSize || 13) + "px", 
         showPrintMargin: false,
         wrap: true,
@@ -45,25 +47,46 @@ window.aceEditor = ace.edit("editor");
         indentedSoftWrap: false
     });
 
-    // Bind Autosave to Ace's change event
+    // Bind Autosave to Ace's change event for Pane 1
     function onEditorChange() {
-    // Clear any red error warnings when the user starts typing again
-    window.aceEditor.session.clearAnnotations(); 
-    
-    state.dirty = true;
-    if (state.editorTimeout) clearTimeout(state.editorTimeout);
-    if (typeof autosaveEnabled !== 'undefined' && autosaveEnabled) {
-        state.editorTimeout = setTimeout(function() { 
-            if (state.currentFile) saveCurrentConfig(); 
-        }, 1000);
+        if (window.aceEditor) window.aceEditor.session.clearAnnotations(); 
+        state.dirty = true;
+        if (state.editorTimeout) clearTimeout(state.editorTimeout);
+        if (typeof autosaveEnabled !== 'undefined' && autosaveEnabled) {
+            state.editorTimeout = setTimeout(function() { 
+                if (state.currentFile) saveCurrentConfig(); 
+            }, 1000);
+        }
     }
-}
+    
+    // Bind Autosave for Pane 2
+    function onEditor2Change() {
+        if (window.aceEditor2) window.aceEditor2.session.clearAnnotations();
+        if (state.splitMode === 'compare') {
+            state.dirty2 = true;
+            if (state.editorTimeout2) clearTimeout(state.editorTimeout2);
+            if (typeof autosaveEnabled !== 'undefined' && autosaveEnabled) {
+                state.editorTimeout2 = setTimeout(function() {
+                    if (state.currentFile2) saveConfig2();
+                }, 1000);
+            }
+        } else if (state.splitMode === 'split-active') {
+            // In split-active, modifying pane 2 dirties the single combined file
+            state.dirty = true;
+            if (state.editorTimeout) clearTimeout(state.editorTimeout);
+            if (typeof autosaveEnabled !== 'undefined' && autosaveEnabled) {
+                state.editorTimeout = setTimeout(function() { 
+                    if (state.currentFile) saveCurrentConfig(); 
+                }, 1000);
+            }
+        }
+    }
     
     window.aceEditor.session.on('change', onEditorChange);
-    window.aceEditor2.session.on('change', onEditorChange);
+    window.aceEditor2.session.on('change', onEditor2Change);
+
 // ========== THEME SYSTEM ==========
 var ACE_THEME_MAP = {
-    // bg theme -> ace theme (fallback base)
     'default':     'ace/theme/tomorrow_night',
     'pitch-black': 'ace/theme/idle_fingers',
     'red':         'ace/theme/tomorrow_night',
@@ -72,14 +95,13 @@ var ACE_THEME_MAP = {
 };
 
 var ACE_TEXT_MAP = {
-    'light-text':  null,          // use bg default
-    'light-blue':  null,          // use bg default
-    'crimson':     null,          // use bg default  
-    'dark-text':   'ace/theme/chrome', // light editor for dark text
+    'light-text':  null,
+    'light-blue':  null,
+    'crimson':     null,  
+    'dark-text':   'ace/theme/chrome',
 };
 
 function getAceTheme() {
-    // Text theme takes priority if it has an override
     var textOverride = ACE_TEXT_MAP[state.currentTextTheme];
     if (textOverride) return textOverride;
     return ACE_THEME_MAP[state.currentBgTheme] || 'ace/theme/tomorrow_night';
@@ -124,7 +146,6 @@ function applyFontSize(size) {
     state.editorFontSize = size;
     localStorage.setItem('gcsim_fontsize', size.toString());
     
-    // Tell Ace to update
     if (typeof window.aceEditor !== 'undefined') window.aceEditor.setFontSize(size + "px");
     if (typeof window.aceEditor2 !== 'undefined') window.aceEditor2.setFontSize(size + "px");
 }
@@ -164,8 +185,6 @@ function escapeHtml(str) {
     return String(str).replace(/[&]/g, '&' + 'amp;').replace(/[<]/g, '&' + 'lt;').replace(/[>]/g, '&' + 'gt;');
 }
 
-
-
 async function api(method, url, body) {
     var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
@@ -204,7 +223,11 @@ function toggleLog() {
 }
 
 function formatConfig() {
-    var editor = document.getElementById('editor');
+    if (state.splitMode === 'split-active') {
+        toast('Cannot format while in Split-Active mode. Close split first.', 'warning');
+        return;
+    }
+    
     var raw = window.aceEditor.getValue();
     if (!raw.trim()) return;
     var result = raw;
@@ -215,9 +238,7 @@ function formatConfig() {
         if (i > 0 && sectionHeaders.test(line) && arr[i-1].trim() !== '') return '\n' + line;
         return line;
     }).join('\n');
-    // Fix spacing inside stats/value lines: remove spaces around = in key=value pairs
     result = result.replace(/(\w[\w.%]*)\s*=\s*([^\s;]+)/g, '$1=$2');
-    // Also handle colon-based assignments if any exist
     result = result.replace(/(\w[\w.%]*)\s*:\s*(\d+(?:\.\d+)?)/g, '$1:$2');
     var indentLevel = 0;
     var lines = result.split('\n');
@@ -227,13 +248,11 @@ function formatConfig() {
         if (trimmed.startsWith('#') || trimmed.startsWith('//')) { formatted.push(lines[i].replace(/^\s*/, '')); continue; }
         if (trimmed === '') { formatted.push(''); continue; }
         if (trimmed.startsWith('}')) indentLevel = Math.max(0, indentLevel - 1);
-        // Do NOT indent stat/value continuation lines - they belong to the current character block
         formatted.push('  '.repeat(indentLevel) + trimmed);
         if (trimmed.endsWith('{') || ((trimmed.match(/\{/g) || []).length > (trimmed.match(/\}/g) || []).length && !trimmed.startsWith('}'))) indentLevel++;
     }
     result = formatted.join('\n');
     result = result.replace(/\n+$/, '\n');
-    // Instead of overwriting directly, use Ace's session to replace preserving undo history
     window.aceEditor.session.setValue(result);
     state.dirty = true;
     toast('Config formatted', 'info');
@@ -242,18 +261,18 @@ function formatConfig() {
 async function saveSettings() {
     state.settings.project_name = state.currentProject;
     state.settings.opt_liquid = parseInt(document.getElementById('opt_liquid').value);
-state.settings.opt_cap = parseInt(document.getElementById('opt_cap').value);
-state.settings.opt_fixed = parseInt(document.getElementById('opt_fixed').value);
-state.settings.opt_tune = parseInt(document.getElementById('opt_tune').value);
+    state.settings.opt_cap = parseInt(document.getElementById('opt_cap').value);
+    state.settings.opt_fixed = parseInt(document.getElementById('opt_fixed').value);
+    state.settings.opt_tune = parseInt(document.getElementById('opt_tune').value);
     try { await api('POST', '/api/settings', state.settings); } catch (e) { console.error('Settings save error:', e); }
 }
 
 async function loadSettings() {
     try {
         document.getElementById('opt_liquid').value = state.settings.opt_liquid ?? 20;
-document.getElementById('opt_cap').value = state.settings.opt_cap ?? 10;
-document.getElementById('opt_fixed').value = state.settings.opt_fixed ?? 2;
-document.getElementById('opt_tune').value = state.settings.opt_tune ?? 1;
+        document.getElementById('opt_cap').value = state.settings.opt_cap ?? 10;
+        document.getElementById('opt_fixed').value = state.settings.opt_fixed ?? 2;
+        document.getElementById('opt_tune').value = state.settings.opt_tune ?? 1;
         state.settings = await api('GET', '/api/settings');
     } catch (e) { console.error('Settings load error:', e); }
 }
@@ -275,14 +294,12 @@ async function loadRuntimes() {
         }
 
         data.runtimes.forEach(r => {
-            // Populate Toolbar Dropdown
             const opt = document.createElement('option');
             opt.value = r.id;
             opt.textContent = r.name;
             if (r.id === data.active) opt.selected = true;
             select.appendChild(opt);
 
-            // Populate Settings List
             const div = document.createElement('div');
             div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:6px; border-bottom:1px solid var(--border-color);';
             div.innerHTML = `
@@ -340,7 +357,6 @@ async function downloadOfficialRuntime() {
     } catch (e) { toast('Download failed: ' + e.message, 'error'); }
 }
 
-// Ensure loadOfficialReleases is called when Settings modal opens
 const oldShowSettings = showSettingsModal;
 showSettingsModal = function() {
     oldShowSettings();
@@ -348,7 +364,6 @@ showSettingsModal = function() {
     loadOfficialReleases();
 };
 
-// --- BROWSE LOGIC FOR CUSTOM BINARIES ---
 let browseState = { path: '', file: null, parent: null };
 
 async function openBrowseModal() {
@@ -373,7 +388,6 @@ async function navigateBrowseToPath(pathStr) {
         
         const list = document.getElementById('browseList');
         
-        // Safely encode paths to prevent single-quotes and backslashes from breaking the HTML
         list.innerHTML = res.directories.map(d => `
             <div style="padding:4px; cursor:pointer; color:var(--text-secondary);" onclick="navigateBrowseToPath(decodeURIComponent('${encodeURIComponent(d.path)}'))">
                 📁 ${escapeHtml(d.name)}
@@ -381,7 +395,6 @@ async function navigateBrowseToPath(pathStr) {
         `).join('');
         
         list.innerHTML += res.files.map(f => {
-            // Use the backend's OS check instead of process.platform
             const isExec = res.isWindows ? f.name.toLowerCase().endsWith('.exe') : !f.name.includes('.');
             return `
             <div style="padding:4px; cursor:${isExec ? 'pointer' : 'default'}; color:${isExec ? 'var(--toast-success-border)' : 'var(--text-muted)'};" 
@@ -414,7 +427,6 @@ async function confirmCustomRuntime() {
         loadRuntimes();
     } catch(e) { toast('Failed to add runtime', 'error'); }
 }
-// ===========================================
 
 async function loadProjects() {
     try {
@@ -455,8 +467,11 @@ async function renameProject() {
         await api('PUT', '/api/projects/' + encodeURIComponent(state.currentProject) + '/rename', { newName: newName });
         toast('Project renamed to "' + newName + '"', 'success');
         state.currentProject = newName;
+        
         state.currentFile = null;
-        document.getElementById('editor').value = '';
+        window.aceEditor.setValue('');
+        closeSplit(true);
+
         document.getElementById('fileIndicator').textContent = 'No file loaded';
         document.getElementById('saveStatus').textContent = '';
 
@@ -475,7 +490,10 @@ async function deleteProject() {
         toast('Project "' + state.currentProject + '" deleted', 'info');
         state.currentProject = '';
         state.currentFile = null;
-        document.getElementById('editor').value = '';
+        
+        window.aceEditor.setValue('');
+        closeSplit(true);
+
         document.getElementById('fileIndicator').textContent = 'No file loaded';
         document.getElementById('saveStatus').textContent = '';
 
@@ -489,8 +507,10 @@ async function deleteProject() {
 async function onProjectChange() {
     state.currentProject = document.getElementById('projectSelect').value;
     state.currentFile = null;
+    window.aceEditor.setValue('');
+    closeSplit(true);
+
     document.getElementById('fileIndicator').textContent = 'No file loaded';
-    document.getElementById('editor').value = '';
     document.getElementById('saveStatus').textContent = '';
 
     state.dirty = false;
@@ -504,12 +524,11 @@ async function loadConfigs() {
         state.configs = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs');
         document.getElementById('configCount').textContent = state.configs.length + ' file' + (state.configs.length !== 1 ? 's' : '');
         if (state.configs.length === 0) { list.innerHTML = '<div class="no-configs-msg">No config files. Click "+ New" to create one.</div>'; return; }
-        // Load DPS data for sidebar display
         await loadProjectDps();
         renderFileList();
     } catch (e) { list.innerHTML = '<div class="no-configs-msg">Error loading configs</div>'; }
 }
-// ========== META (tags, pins) ==========
+
 function saveMeta() {
     localStorage.setItem('gcsim_meta', JSON.stringify(state.configMeta));
 }
@@ -546,34 +565,26 @@ function renderTagChips(name) {
     return html;
 }
 
-// ========== SEARCH / FILTER ==========
 function matchesSearch(config) {
     var q = (document.getElementById('configSearch').value || '').toLowerCase().trim();
     if (!q) return true;
-    // Match filename
     if (config.name.toLowerCase().includes(q)) return true;
-    // Match tags & pin
     var meta = getMeta(config.name);
     if ((meta.tags || []).some(function(t) { return t.includes(q); })) return true;
     if (q === 'pinned' && meta.pinned) return true;
-    // Match content (characters / weapons)
     var content = (config.content || '').toLowerCase();
     return content.includes(q);
 }
 
-// ========== DPS DATA TRACKING ==========
 async function loadProjectDps() {
     if (!state.currentProject) return;
     try {
         const results = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/results');
         state.configDps = {};
         results.forEach(function(r) {
-            // r.configName is the name without extension
             state.configDps[r.configName] = r.dps;
         });
-    } catch(e) {
-        // Silently fail - DPS data is non-critical
-    }
+    } catch(e) {}
 }
 
 function onSortModeChange() {
@@ -597,7 +608,6 @@ function getDpsDisplay(name) {
     return '';
 }
 
-// ========== RENDER FILE LIST ==========
 function renderFileList() {
     var list = document.getElementById('fileList');
     if (!state.configs || state.configs.length === 0) {
@@ -608,7 +618,6 @@ function renderFileList() {
     var sorted = state.configs.slice();
     
     if (state.sortMode === 'dps') {
-        // Sort by DPS descending, then by pinned
         sorted.sort(function(a, b) {
             var ap = getMeta(a.name).pinned ? 0 : 1;
             var bp = getMeta(b.name).pinned ? 0 : 1;
@@ -620,7 +629,6 @@ function renderFileList() {
             return dpsB - dpsA;
         });
     } else if (state.sortMode === 'alphabetical') {
-        // Sort alphabetically (A-Z), then by pinned
         sorted.sort(function(a, b) {
             var ap = getMeta(a.name).pinned ? 0 : 1;
             var bp = getMeta(b.name).pinned ? 0 : 1;
@@ -628,7 +636,6 @@ function renderFileList() {
             return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
         });
     } else {
-        // Sort: pinned first, then original order
         sorted.sort(function(a, b) {
             var ap = getMeta(a.name).pinned ? 0 : 1;
             var bp = getMeta(b.name).pinned ? 0 : 1;
@@ -668,6 +675,7 @@ function renderFileList() {
             getDpsDisplay(f.name) +
             renderTagChips(f.name) +
             '<span class="file-actions">' +
+                '<button onclick="event.stopPropagation();openToSide(\'' + escName + '\')" title="Compare (Open in side pane)">◫</button>' +
                 '<button onclick="event.stopPropagation();togglePin(\'' + escName + '\')" title="Pin">' + (meta.pinned ? '📌' : '📍') + '</button>' +
                 '<button onclick="event.stopPropagation();showTagMenu(\'' + escName + '\', this)" title="Tag">🏷</button>' +
                 '<button onclick="event.stopPropagation();duplicateConfigByName(\'' + escName + '\')" title="Duplicate">⧉</button>' +
@@ -679,7 +687,6 @@ function renderFileList() {
             div.onclick = (function(n) { return function() { loadConfig(n); }; })(f.name);
         }
 
-        // Drag events
         div.addEventListener('dragstart', onDragStart);
         div.addEventListener('dragover',  onDragOver);
         div.addEventListener('dragleave', onDragLeave);
@@ -690,7 +697,6 @@ function renderFileList() {
     });
 }
 
-// ========== TAG MENU (inline popover) ==========
 var _tagMenuOpen = null;
 function showTagMenu(name, btn) {
     if (_tagMenuOpen) { _tagMenuOpen.remove(); _tagMenuOpen = null; }
@@ -717,7 +723,6 @@ function showTagMenu(name, btn) {
     }, 0);
 }
 
-// ========== DRAG TO REORDER ==========
 var _dragSrc = null;
 
 function onDragStart(e) {
@@ -749,7 +754,6 @@ async function onDrop(e) {
     } catch (e) { toast('Drag reorder failed', 'error'); }
 }
 
-// ========== SELECT MODE ==========
 function toggleSelectMode() {
     state.selectMode = !state.selectMode;
     state.selectedConfigs.clear();
@@ -799,7 +803,6 @@ async function bulkOptimize() {
     } catch (e) { toast('Bulk optimize error: ' + e.message, 'error'); }
 }
 
-// ========== SHORTCUTS MODAL ==========
 function showShortcutsModal() {
     document.getElementById('shortcutsModal').classList.add('show');
 }
@@ -816,12 +819,21 @@ async function loadConfig(name) {
     try {
         var data = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(name));
         state.currentFile = { name: data.name, content: data.content };
+        
+        window.aceEditor.session.off('change', onEditorChange);
         window.aceEditor.setValue(data.content, -1);
+        window.aceEditor.session.on('change', onEditorChange);
 
         document.getElementById('fileIndicator').textContent = 'File: ' + data.name;
         document.getElementById('saveStatus').textContent = '';
         state.dirty = false;
-        // Re-render the file list to apply the active class consistently
+        
+        if (state.splitMode === 'compare') {
+            document.getElementById('pane1Label').textContent = data.name;
+        } else if (state.splitMode === 'split-active') {
+            closeSplit(true);
+        }
+
         renderFileList();
     } catch (e) { toast('Error loading config: ' + e.message, 'error'); }
 }
@@ -829,18 +841,27 @@ async function loadConfig(name) {
 async function saveCurrentConfig() {
     if (!state.currentFile) return;
     try {
-        // If split view is active, merge content from both editors before saving
         var contentToSave = window.aceEditor.getValue();
-        if (splitViewActive && window.aceEditor2) {
+        if (state.splitMode === 'split-active' && window.aceEditor2) {
             var text1 = window.aceEditor.getValue();
             var text2 = window.aceEditor2.getValue();
-            contentToSave = text2 + text1;  // merge editor2 + editor1
+            contentToSave = text2 + text1;
         }
         await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(state.currentFile.name), { content: contentToSave });
-        state.currentFile.content = document.getElementById('editor').value;
+        state.currentFile.content = contentToSave;
         state.dirty = false;
         document.getElementById('saveStatus').textContent = '';
     } catch (e) { toast('Error saving: ' + e.message, 'error'); }
+}
+
+async function saveConfig2() {
+    if (!state.currentFile2 || state.splitMode !== 'compare') return;
+    try {
+        var contentToSave = window.aceEditor2.getValue();
+        await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(state.currentFile2.name), { content: contentToSave });
+        state.currentFile2.content = contentToSave;
+        state.dirty2 = false;
+    } catch (e) { toast('Error saving secondary config: ' + e.message, 'error'); }
 }
 
 async function newConfig() {
@@ -861,11 +882,13 @@ async function deleteConfigByName(name) {
         toast('Deleted "' + name + '"', 'info');
         if (state.currentFile && state.currentFile.name === name) {
             state.currentFile = null;
-            document.getElementById('editor').value = '';
-
+            window.aceEditor.setValue('');
             document.getElementById('fileIndicator').textContent = 'No file loaded';
             document.getElementById('saveStatus').textContent = '';
             state.dirty = false;
+        }
+        if (state.currentFile2 && state.currentFile2.name === name) {
+            closeSplit(true);
         }
         await loadConfigs();
     } catch (e) { toast('Error deleting: ' + e.message, 'error'); }
@@ -878,31 +901,20 @@ async function renameConfigByName(name) {
     try {
         var data = await api('PUT', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(name) + '/rename', { newName: newName });
         toast('Renamed to "' + data.name + '"', 'success');
+        
         if (state.currentFile && state.currentFile.name === name) state.currentFile.name = data.name;
+        if (state.currentFile2 && state.currentFile2.name === name) state.currentFile2.name = data.name;
+        
+        if (state.currentFile) document.getElementById('fileIndicator').textContent = 'File: ' + state.currentFile.name;
+        if (state.splitMode === 'compare') {
+            if (state.currentFile) document.getElementById('pane1Label').textContent = state.currentFile.name;
+            if (state.currentFile2) document.getElementById('pane2Label').textContent = state.currentFile2.name;
+        }
+        
         await loadConfigs();
     } catch (e) { toast('Error renaming: ' + e.message, 'error'); }
 }
 function renameConfig() { if (!state.currentFile) { toast('No file selected', 'error'); return; } renameConfigByName(state.currentFile.name); }
-
-async function moveConfigUp(name, idx) {
-    if (idx <= 0) { toast('Already at the top', 'info'); return; }
-    var prevName = state.configs[idx - 1].name;
-    try {
-        await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/swap', { nameA: prevName, nameB: name });
-        toast('Moved up', 'success');
-        await loadConfigs();
-    } catch (e) { toast('Error moving: ' + e.message, 'error'); }
-}
-
-async function moveConfigDown(name, idx) {
-    if (idx >= state.configs.length - 1) { toast('Already at the bottom', 'info'); return; }
-    var nextName = state.configs[idx + 1].name;
-    try {
-        await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/swap', { nameA: name, nameB: nextName });
-        toast('Moved down', 'success');
-        await loadConfigs();
-    } catch (e) { toast('Error moving: ' + e.message, 'error'); }
-}
 
 async function duplicateConfigByName(name) {
     try { var data = await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(name) + '/duplicate'); toast('Duplicated to "' + data.name + '"', 'success'); await loadConfigs(); }
@@ -944,8 +956,8 @@ async function validateSelected() {
     }
     if (!filename) { toast('Select a config from the sidebar first', 'error'); return; }
     
-    // Save the file first so the backend parses your latest typing
     if (state.dirty) await saveCurrentConfig();
+    if (state.splitMode === 'compare' && state.dirty2) await saveConfig2();
     
     toast('Checking syntax...', 'info');
     try {
@@ -954,17 +966,12 @@ async function validateSelected() {
         if (data.valid) {
             toast('No syntax errors found!', 'success');
             log(`\n[${filename}] Check: \n<span class="log-success">${escapeHtml(data.output)}</span>\n`);
-            // Clear any old red errors from the editor
             if (window.aceEditor) window.aceEditor.session.clearAnnotations();
         } else {
             toast('Syntax errors found', 'error');
-            
-            // Try to extract the line number from gcsim's error output
             const lineMatch = data.output.match(/line\s+(\d+)|:(\d+):/i);
             if (lineMatch && window.aceEditor) {
-                const lineNum = parseInt(lineMatch[1] || lineMatch[2]) - 1; // Ace lines are 0-indexed
-                
-                // Add a red X directly on the line in Ace Editor!
+                const lineNum = parseInt(lineMatch[1] || lineMatch[2]) - 1; 
                 window.aceEditor.session.setAnnotations([{
                     row: lineNum,
                     column: 0,
@@ -978,7 +985,7 @@ async function validateSelected() {
         toast('Validation error: ' + e.message, 'error');
     }
 }
-// ========== SIM BUTTON LOADING SPINNERS ==========
+
 var SIM_BUTTON_SELECTORS = [
     'button[onclick*="runSelected"]',
     'button[onclick*="runAll"]',
@@ -1075,7 +1082,7 @@ async function terminateProcesses() {
     catch (e) { toast('Terminate error: ' + e.message, 'error'); }
 }
 
-let renderedLogLength = 0; // Tracks exactly how many log lines we've printed
+let renderedLogLength = 0; 
 
 function clearLog() { 
     document.getElementById('logContent').innerHTML = ''; 
@@ -1094,8 +1101,6 @@ function log(msg, isHtml = false) {
 
 function startPolling() {
     if (state.pollInterval) clearInterval(state.pollInterval);
-    
-    // Auto-clear the UI log safely on new runs
     clearLog();
 
     state.pollInterval = setInterval(async function() {
@@ -1104,7 +1109,6 @@ function startPolling() {
             var data = await api('GET', '/api/runs/' + state.runId);
             var logEl = document.getElementById('logContent');
             
-            // Only parse NEW logs that haven't been rendered yet
             if (data.log.length > renderedLogLength) {
                 var newEntries = data.log.slice(renderedLogLength);
                 renderedLogLength = data.log.length;
@@ -1112,7 +1116,6 @@ function startPolling() {
                 var newText = newEntries.join('');
                 var formattedLog = escapeHtml(newText);
                 
-                // Color formatting
                 formattedLog = formattedLog.replace(/^(.*(?:error|panic|failed|invalid|exited with code).*)$/gmi, '<span class="log-error">$1</span>');
                 formattedLog = formattedLog.replace(/^(.*Completed.*)$/gmi, '<span class="log-success">$1</span>');
                 
@@ -1126,14 +1129,12 @@ function startPolling() {
                 setSimButtonsLoading(false); 
                 if (data.status === 'completed') {
                     toast('All ' + (data.mode === 'optimize' ? 'optimizations' : 'simulations') + ' completed', 'success');
-                    // Refresh DPS data in sidebar
                     setTimeout(function() {
                         loadProjectDps().then(function() {
                             renderFileList();
                         });
                     }, 500);
                     if (state.autoOpenViewer) {
-                        // Find the latest result file and auto-open the viewer
                         setTimeout(function() {
                             api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/results').then(function(results) {
                                 if (results.length > 0) {
@@ -1154,8 +1155,9 @@ var autosaveEnabled = true;
 function toggleAutosave() {
     autosaveEnabled = document.getElementById('autosaveToggle').checked;
     localStorage.setItem('gcsim_autosave', autosaveEnabled);
-    if (autosaveEnabled && state.currentFile && state.dirty) {
-        saveCurrentConfig();
+    if (autosaveEnabled) {
+        if (state.currentFile && state.dirty) saveCurrentConfig();
+        if (state.splitMode === 'compare' && state.currentFile2 && state.dirty2) saveConfig2();
     }
 }
 
@@ -1167,8 +1169,6 @@ function loadAutosavePreference() {
     }
 }
 
-var splitViewActive = false;
-var splitLine = -1;
 var isResizing = false;
 var startX = 0;
 var startWidth = 0;
@@ -1188,31 +1188,74 @@ function findSplitLine(text) {
     return -1;
 }
 
-function toggleSplitView() {
-    var wrapper = document.getElementById('editorWrapper');
-    var pane2 = document.getElementById('pane2');
-    var resizer = document.getElementById('resizer');
-    var editor2 = document.getElementById('editor2');
-    
-    if (splitViewActive) {
-        // Merge back
-        var text1 = window.aceEditor.getValue();
-        var text2 = window.aceEditor2.getValue();
-        window.aceEditor.setValue(text2 + text1, -1);
-        pane2.style.display = 'none';
-        resizer.style.display = 'none';
-        wrapper.classList.remove('split');
-        splitViewActive = false;
+// Opens the requested file in the secondary editor pane (Side-by-Side compare)
+async function openToSide(name) {
+    if (state.splitMode === 'split-active') {
+        closeSplit();
+    } else if (state.splitMode === 'compare') {
+        if (state.dirty2) {
+            if(confirm('Save changes to "' + state.currentFile2.name + '"?')) await saveConfig2();
+        }
+    }
 
-        state.dirty = true;
+    try {
+        var data = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/configs/' + encodeURIComponent(name));
+        state.currentFile2 = { name: data.name, content: data.content };
         
-        // Refresh Ace editor layout
+        window.aceEditor2.session.off('change', onEditor2Change);
+        window.aceEditor2.setValue(data.content, -1);
+        window.aceEditor2.session.on('change', onEditor2Change);
+        
+        state.dirty2 = false;
+
+        document.getElementById('pane2').style.display = 'block';
+        document.getElementById('resizer').style.display = 'block';
+        document.getElementById('editorWrapper').classList.add('split');
+        state.splitMode = 'compare';
+        document.getElementById('closeSplitBtn').style.display = 'inline-block';
+
+        document.getElementById('pane1Label').textContent = state.currentFile ? state.currentFile.name : 'Editor 1';
+        document.getElementById('pane2Label').textContent = data.name;
+
         if (window.aceEditor) window.aceEditor.resize();
         if (window.aceEditor2) window.aceEditor2.resize();
         
-        // Explicitly save the merged content to ensure no changes are lost
+        toast('Opened ' + name + ' side-by-side', 'success');
+    } catch (e) { toast('Error loading config to side: ' + e.message, 'error'); }
+}
+
+function closeSplit(force = false) {
+    if (state.splitMode === 'none') return;
+    
+    if (state.splitMode === 'split-active') {
+        var text1 = window.aceEditor.getValue();
+        var text2 = window.aceEditor2.getValue();
+        window.aceEditor.session.off('change', onEditorChange);
+        window.aceEditor.setValue(text2 + text1, -1);
+        window.aceEditor.session.on('change', onEditorChange);
+        state.dirty = true;
         if (state.currentFile) saveCurrentConfig();
-        
+    } else if (state.splitMode === 'compare') {
+        if (state.dirty2 && !force) {
+            if(confirm('Save changes to "' + state.currentFile2.name + '"?')) saveConfig2();
+        }
+    }
+    
+    document.getElementById('pane2').style.display = 'none';
+    document.getElementById('resizer').style.display = 'none';
+    document.getElementById('editorWrapper').classList.remove('split');
+    state.splitMode = 'none';
+    state.currentFile2 = null;
+    document.getElementById('closeSplitBtn').style.display = 'none';
+    document.getElementById('pane1Label').textContent = '';
+    document.getElementById('pane2Label').textContent = '';
+    
+    if (window.aceEditor) window.aceEditor.resize();
+}
+
+function toggleSplitView() {
+    if (state.splitMode !== 'none') {
+        closeSplit();
         toast('Split view closed', 'info');
         return;
     }
@@ -1234,22 +1277,32 @@ function toggleSplitView() {
     var part1 = text.substring(0, splitIndex);
     var part2 = text.substring(splitIndex);
     
+    window.aceEditor.session.off('change', onEditorChange);
+    window.aceEditor2.session.off('change', onEditor2Change);
+    
     window.aceEditor.setValue(part2, -1);
     window.aceEditor2.setValue(part1, -1);
     
-    pane2.style.display = 'block';
-    resizer.style.display = 'block';
-    wrapper.classList.add('split');
-    splitViewActive = true;
+    window.aceEditor.session.on('change', onEditorChange);
+    window.aceEditor2.session.on('change', onEditor2Change);
+    
+    document.getElementById('pane2').style.display = 'block';
+    document.getElementById('resizer').style.display = 'block';
+    document.getElementById('editorWrapper').classList.add('split');
+    state.splitMode = 'split-active';
+    document.getElementById('closeSplitBtn').style.display = 'inline-block';
+    
+    document.getElementById('pane1Label').textContent = 'Action List (after active)';
+    document.getElementById('pane2Label').textContent = 'Characters / Team (before active)';
     
     state.dirty = true;
     
-    // Refresh Ace editor layout after DOM change
     if (window.aceEditor) window.aceEditor.resize();
     if (window.aceEditor2) window.aceEditor2.resize();
     
     toast('Split view opened', 'info');
 }
+
 function onAutoOpenChange() {
     state.autoOpenViewer = document.getElementById('autoOpenViewer').checked;
     localStorage.setItem('gcsim_auto_open_viewer', state.autoOpenViewer);
@@ -1261,19 +1314,20 @@ async function showResultsModal() {
     document.getElementById('resultsModal').classList.add('show');
     document.getElementById('autoOpenViewer').checked = state.autoOpenViewer;
     const tbody = document.getElementById('resultsTableBody');
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 15px;">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 15px;">Loading...</td></tr>';
     
     try {
         const results = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/results');
         tbody.innerHTML = '';
         document.getElementById('resultCount').textContent = results.length + ' result' + (results.length !== 1 ? 's' : '');
         if (results.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 15px; color: var(--text-muted);">No results found. Run a simulation first.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 15px; color: var(--text-muted);">No results found. Run a simulation first.</td></tr>';
             return;
         }
         results.forEach(r => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td style="padding-right:0;"><input type="checkbox" class="result-checkbox" value="${escapeHtml(r.filename)}"></td>
                 <td>${escapeHtml(r.configName)}</td>
                 <td><span style="padding: 2px 6px; border-radius: 3px; background: ${r.mode === 'Optimize' ? 'var(--bg-btn-opt)' : 'var(--bg-active)'}; font-size: 10px;">${r.mode}</span></td>
                 <td style="font-family: monospace; font-size: 14px; font-weight: bold; color: var(--toast-success-border);">${Math.round(r.dps).toLocaleString()}</td>
@@ -1284,7 +1338,25 @@ async function showResultsModal() {
             tbody.appendChild(tr);
         });
     } catch(e) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px; color: var(--toast-error-border);">Error loading results</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color: var(--toast-error-border);">Error loading results</td></tr>`;
+    }
+}
+
+function toggleAllResults(source) {
+    document.querySelectorAll('.result-checkbox').forEach(cb => cb.checked = source.checked);
+}
+
+// Opens multiple selected runs in viewer tabs
+async function viewSelectedResults() {
+    const cbs = document.querySelectorAll('.result-checkbox:checked');
+    if (cbs.length === 0) {
+        toast('No results selected', 'error');
+        return;
+    }
+    toast(`Opening ${cbs.length} viewers...`, 'info');
+    for (let cb of cbs) {
+        openGcsimViewer(cb.value);
+        await new Promise(r => setTimeout(r, 300)); // small delay to prevent browser tab drop
     }
 }
 
@@ -1303,23 +1375,18 @@ async function clearResults() {
     try {
         const data = await api('POST', '/api/projects/' + encodeURIComponent(state.currentProject) + '/results/clear');
         toast('Cleared ' + data.deleted + ' result file(s)', 'info');
-        showResultsModal(); // Refresh the results table
+        showResultsModal(); 
     } catch(e) {
         toast('Failed to clear results: ' + e.message, 'error');
     }
 }
 
-
-
-
 document.addEventListener('keydown', function(e) {
     var ctrl = e.ctrlKey || e.metaKey;
-
-    // Don't fire when typing in an input/textarea outside the editor
     var tag = document.activeElement.tagName;
     var inInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') && !document.activeElement.classList.contains('editor-textarea');
 
-    if (ctrl && e.key === 's')                         { e.preventDefault(); if (state.currentFile) saveCurrentConfig(); return; }
+    if (ctrl && e.key === 's')                         { e.preventDefault(); if (state.currentFile) saveCurrentConfig(); if (state.splitMode === 'compare' && state.currentFile2) saveConfig2(); return; }
     if (ctrl && e.shiftKey && e.key === 'F')           { e.preventDefault(); formatConfig(); return; }
     if (ctrl && e.shiftKey && e.key === 'V')           { e.preventDefault(); toggleSplitView(); return; }
     if (ctrl && e.shiftKey && e.key === 'K')           { e.preventDefault(); validateSelected(); return; }
@@ -1333,7 +1400,6 @@ document.addEventListener('keydown', function(e) {
     if (ctrl && e.shiftKey && e.key === 'O')           { e.preventDefault(); optimizeSelected(); return; }
     if (e.key === 'Escape')                            { terminateProcesses(); return; }
 
-    // Navigate configs with Ctrl+Up / Ctrl+Down
     if (ctrl && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && !inInput) {
         e.preventDefault();
         if (!state.configs || state.configs.length === 0) return;
@@ -1366,7 +1432,7 @@ document.addEventListener('mousemove', function(e) {
     if (newWidth > maxWidth) newWidth = maxWidth;
     
     document.getElementById('pane1').style.width = newWidth + 'px';
-    document.getElementById('pane2').style.width = (wrapperWidth - newWidth - 4) + 'px'; // 4px for resizer
+    document.getElementById('pane2').style.width = (wrapperWidth - newWidth - 4) + 'px'; 
 });
 
 document.addEventListener('mouseup', function() {
@@ -1378,17 +1444,13 @@ document.addEventListener('mouseup', function() {
 
 async function init() {
     loadAutosavePreference();
-    // Apply saved themes and fonts
     applyBgTheme(state.currentBgTheme);
     applyTextTheme(state.currentTextTheme);
     applyFontSize(state.editorFontSize);
     
-    // Load state
     await loadSettings();
     await loadProjects();
 
-    
-    // Load runtimes into the dropdown immediately
     await loadRuntimes();
     
     const select = document.getElementById('runtimeSelect');
@@ -1398,6 +1460,283 @@ async function init() {
         setTimeout(loadRuntimes, 8000);
     }
 }
+// ========== NATIVE TIMELINE VIEWER & FILTERS ==========
+// Define layout exactly like the gcsim.app screenshot
+const TL_EVENT_CATEGORIES = [
+    ["action", "warning", "element", "player", "hurt", "calc", "weapon", "debug", "hook", "reaction"],
+    ["damage", "status", "shield", "user", "pre_damage_mods", "snapshot", "enemy", "sim", "procs", "snapshot_mods"],
+    ["energy", "cooldown", "construct", "heal", "icd", "character", "artifact", "hitlag", "task", "queue"]
+];
 
-// Make sure init is called
+const TIMELINE_PRESETS = {
+    'Simple': ["action","damage","energy","status","element","shield","construct","cooldown"],
+    'Advanced': ["action","damage","energy","status","element","shield","construct","cooldown","icd","reaction","calc","snapshot","snapshot_mods","procs","weapon","artifact","character","heal"],
+    'Verbose': TL_EVENT_CATEGORIES.flat(),
+    'Debug': TL_EVENT_CATEGORIES.flat(),
+    'Clear': []
+};
+
+// Store current data in memory so we don't have to re-fetch when clicking filters
+state.activeTimelineData = [];
+state.timelineFilters = new Set(JSON.parse(localStorage.getItem('gcsim_timeline_filters') || JSON.stringify(TIMELINE_PRESETS['Simple'])));
+
+function initFilterUI() {
+    const grid = document.getElementById('tlFilterGrid');
+    // FIX: Check for actual child elements instead of raw innerHTML to ignore whitespace/comments
+    if (grid.children.length > 0) return; 
+    
+    let html = '';
+    for (let i = 0; i < 3; i++) {
+        html += `<div style="display:flex; flex-direction:column; gap:6px;">`;
+        TL_EVENT_CATEGORIES[i].forEach(ev => {
+            let colorClass = '';
+            if (['action', 'calc', 'enemy'].includes(ev)) colorClass = 'tl-color-red';
+            else if (['damage', 'element', 'snapshot'].includes(ev)) colorClass = 'tl-color-blue';
+            else if (['status'].includes(ev)) colorClass = 'tl-color-purple';
+            else if (['energy', 'cooldown', 'icd'].includes(ev)) colorClass = 'tl-color-teal';
+            else if (['hitlag'].includes(ev)) colorClass = 'tl-color-orange';
+            
+            const isChecked = state.timelineFilters.has(ev) ? 'checked' : '';
+            html += `<label class="tl-filter-label ${colorClass}">
+                <input type="checkbox" value="${ev}" class="tl-filter-cb" onchange="toggleTimelineFilter('${ev}', this.checked)" ${isChecked}>
+                ${ev}
+            </label>`;
+        });
+        html += `</div>`;
+    }
+    grid.innerHTML = html;
+}
+
+
+function toggleFilterPanel() {
+    initFilterUI();
+    const p = document.getElementById('timelineFilterPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleTimelineFilter(eventName, checked) {
+    if (checked) state.timelineFilters.add(eventName);
+    else state.timelineFilters.delete(eventName);
+    localStorage.setItem('gcsim_timeline_filters', JSON.stringify(Array.from(state.timelineFilters)));
+    updateTimelineView();
+}
+
+function applyTimelinePreset(presetName) {
+    state.timelineFilters = new Set(TIMELINE_PRESETS[presetName] || []);
+    localStorage.setItem('gcsim_timeline_filters', JSON.stringify(Array.from(state.timelineFilters)));
+    document.querySelectorAll('.tl-filter-cb').forEach(cb => {
+        cb.checked = state.timelineFilters.has(cb.value);
+    });
+    updateTimelineView();
+}
+
+async function viewNativeSamples() {
+    const cbs = document.querySelectorAll('.result-checkbox:checked');
+    if (cbs.length === 0) { toast('No results selected', 'error'); return; }
+    
+    document.getElementById('sampleModal').classList.add('show');
+    const container = document.getElementById('sampleModalContent');
+    container.innerHTML = '<div style="padding: 20px; color: #aeb5be; font-size: 14px;">Fetching and parsing debug data...</div>';
+    
+    state.activeTimelineData = [];
+    
+    for (let cb of cbs) {
+        const isOpt = cb.value.includes('_opt');
+        const mainFilename = cb.value;
+        let sampleFilename = mainFilename;
+        if (!isOpt) sampleFilename = mainFilename.replace(/\.json(\.gz)?$/, '_sample.json$1');
+
+        try {
+            let mainData = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/results/' + encodeURIComponent(mainFilename));
+            let sampleData = mainData;
+            if (!isOpt) {
+                try { sampleData = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/results/' + encodeURIComponent(sampleFilename)); } 
+                catch(e) { console.warn("No separate sample file found, falling back to main file logs."); }
+            }
+            const cleanTitle = mainFilename.replace('_opt.json.gz', '').replace('_opt.json', '').replace('.json.gz', '').replace('.json', '');
+            
+            // Save to memory
+            state.activeTimelineData.push({ filename: cleanTitle, mainData, sampleData });
+        } catch(e) {
+            state.activeTimelineData.push({ filename: mainFilename, error: e.message });
+        }
+    }
+    
+    initFilterUI();
+    updateTimelineView();
+}
+
+function updateTimelineView() {
+    const container = document.getElementById('sampleModalContent');
+    const samplesHTML = state.activeTimelineData.map(obj => {
+        if (obj.error) {
+            return `<div class="sample-timeline-wrapper"><div class="sample-timeline-title">${escapeHtml(obj.filename)}</div><div style="padding: 20px; color: var(--toast-error-border);">Failed to parse JSON: ${escapeHtml(obj.error)}</div></div>`;
+        }
+        return renderSampleTimeline(obj);
+    });
+    
+    container.innerHTML = `<div class="sample-modal-flex-container">${samplesHTML.join('')}</div>`;
+    
+    // Bind the synchronized scrolling immediately after rendering
+    bindSyncScroll();
+}
+
+let isSyncingScroll = false;
+function bindSyncScroll() {
+    const scrollAreas = document.querySelectorAll('.timeline-scroll-area');
+    
+    scrollAreas.forEach(area => {
+        area.addEventListener('scroll', function(e) {
+            const cb = document.getElementById('syncScrollCb');
+            // Do nothing if checkbox is off
+            if (!cb || !cb.checked) return; 
+            
+            // Prevent infinite echo loops between scroll areas
+            if (isSyncingScroll) return;
+            isSyncingScroll = true;
+            
+            const targetScroll = e.target.scrollTop;
+            
+            scrollAreas.forEach(otherArea => {
+                if (otherArea !== e.target && otherArea.scrollTop !== targetScroll) {
+                    otherArea.scrollTop = targetScroll;
+                }
+            });
+            
+            // Release the lock on the next frame after DOM paints the scroll
+            requestAnimationFrame(() => {
+                isSyncingScroll = false;
+            });
+        });
+    });
+}
+
+function renderSampleTimeline(obj) {
+    const { filename, mainData, sampleData } = obj;
+    let eventsArr = sampleData.logs || sampleData.debug || mainData.logs || mainData.debug;
+    if (!eventsArr && Array.isArray(sampleData)) eventsArr = sampleData;
+    
+    if (!eventsArr || eventsArr.length === 0) {
+        return `<div class="sample-timeline-wrapper"><div class="sample-timeline-title">${escapeHtml(filename)}</div><div style="padding: 20px; color: #aeb5be;">No timeline events found. (Optimization runs do not generate timelines).</div></div>`;
+    }
+
+    // Apply Filters here!
+    eventsArr = eventsArr.filter(ev => {
+        let eType = ev.event || 'debug';
+        return state.timelineFilters.has(eType);
+    });
+
+    const chars = mainData.character_details || sampleData.character_details || [];
+    const charNames = [
+        chars.length > 0 ? chars[0].name : 'Char 1',
+        chars.length > 1 ? chars[1].name : 'Char 2',
+        chars.length > 2 ? chars[2].name : 'Char 3',
+        chars.length > 3 ? chars[3].name : 'Char 4'
+    ];
+
+    let html = `<div class="sample-timeline-wrapper">`;
+    html += `<div class="sample-timeline-title">${escapeHtml(filename)} ${sampleData.sample_seed ? `(Seed: ${sampleData.sample_seed})` : ''}</div>`;
+    html += `<div class="timeline-scroll-area">`;
+    html += `<div class="timeline-header">
+        <div>F | Sec</div>
+        <div>Sim</div>`;
+    for (let i = 0; i < 4; i++) {
+        let name = charNames[i] || '';
+        name = name.charAt(0).toUpperCase() + name.slice(1);
+        html += `<div>${escapeHtml(name)}</div>`;
+    }
+    html += `</div>`;
+
+    if (eventsArr.length === 0) {
+        html += `<div style="padding: 20px; color: #aeb5be; text-align:center;">All events have been filtered out. Adjust Log Options to see data.</div></div></div>`;
+        return html;
+    }
+
+    const frames = {};
+    eventsArr.forEach(ev => {
+        if (!frames[ev.frame]) frames[ev.frame] = [];
+        frames[ev.frame].push(ev);
+    });
+
+    const sortedFrames = Object.keys(frames).map(Number).sort((a,b) => a - b);
+
+    sortedFrames.forEach(f => {
+        const sec = (f / 60).toFixed(2);
+        html += `<div class="timeline-row">
+            <div class="timeline-col frame-col">${f} | ${sec}s</div>`;
+        
+        const simEvents = [];
+        const charEvents = [[], [], [], []];
+        
+        frames[f].forEach(ev => {
+            let cIdx = -1;
+            if ('char' in ev) cIdx = parseInt(ev.char);
+            else if ('char_index' in ev) cIdx = parseInt(ev.char_index);
+            else if ('character' in ev) cIdx = parseInt(ev.character);
+            else if ('c' in ev) cIdx = parseInt(ev.c);
+            else if ('target' in ev && ev.event !== 'damage') cIdx = parseInt(ev.target);
+            else if (ev.logs) {
+                if ('char' in ev.logs) cIdx = parseInt(ev.logs.char);
+                else if ('target' in ev.logs && ev.event !== 'damage') cIdx = parseInt(ev.logs.target);
+            }
+            
+            if (cIdx >= 0 && cIdx < 4) charEvents[cIdx].push(ev);
+            else simEvents.push(ev);
+        });
+
+        html += `<div class="timeline-col">${renderEvents(simEvents)}</div>`;
+        for (let i = 0; i < 4; i++) {
+            html += `<div class="timeline-col">${renderEvents(charEvents[i])}</div>`;
+        }
+        html += `</div>`;
+    });
+
+    html += `</div></div>`;
+    return html;
+}
+
+function renderEvents(events) {
+    return events.map(ev => {
+        let bgColor = '#4f5b66'; 
+        let msg = ev.msg || '';
+        let isDamage = ev.event === 'damage' || msg.includes('damage') || msg.includes('crit');
+        let element = (ev.logs && ev.logs.element) ? ev.logs.element.toLowerCase() : null;
+        
+        if (element) {
+            const colors = {
+                hydro: '#2f6bcf', pyro: '#ec4923', electro: '#b44ac0', 
+                cryo: '#46a8ba', anemo: '#359697', geo: '#deaf33', 
+                dendro: '#73a726', physical: '#757575'
+            };
+            bgColor = colors[element] || '#2f6bcf';
+        } else if (ev.event === 'action') bgColor = '#b05c36'; 
+        else if (ev.event === 'status') bgColor = '#96287c'; 
+        else if (ev.event === 'energy') bgColor = '#3c7a3c'; 
+        else if (isDamage) bgColor = '#2f6bcf'; 
+
+        let logsHTML = '';
+        if (ev.logs) {
+            let prefix = ev.logs.key ? `${ev.logs.key} ` : '';
+            let suffix = ev.logs.expiry !== undefined ? ` [${ev.logs.expiry}]` : '';
+            if (prefix || suffix) msg = `${prefix}${msg}${suffix}`;
+
+            let parts = [];
+            for (let k in ev.logs) {
+                if (k === 'key' || k === 'expiry' || (k === 'element' && ev.event === 'damage')) continue;
+                let v = ev.logs[k];
+                if (typeof v === 'number' && v > 0 && v % 1 !== 0) v = v.toFixed(2);
+                if (typeof v === 'object' && v !== null) {
+                    try { v = JSON.stringify(v); } catch(e) { v = String(v); }
+                }
+                parts.push(`${escapeHtml(k)}: ${escapeHtml(String(v))}`);
+            }
+            if (parts.length) logsHTML = `<div class="event-logs">[${parts.join(' | ')}]</div>`;
+        }
+        
+        return `<div class="timeline-event" style="background-color: ${bgColor};">
+            <div style="font-weight:bold;">${escapeHtml(msg)}</div>
+            ${logsHTML}
+        </div>`;
+    }).join('');
+}
 init();
