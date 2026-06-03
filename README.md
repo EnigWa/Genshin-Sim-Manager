@@ -33,14 +33,15 @@ Alternatively, if you use Git, clone the repo by running: `git clone https://git
   npm -v
   ```
 
-**Launch the Application:** 
+**Launch the Application:**
 
-* Windows: Double-click `Genshin Sim Manager.bat` inside the extracted program folder. This script will automatically verify dependencies, run `npm install` if necessary, and boot up the local server.
-* Linux / macOS: From the project root, install Node packages and run the server manually by executing:
-  ```bash
-  npm install
-  npm start
-  ```
+Windows: Double-click Genshin Sim Manager.bat inside the extracted program folder. This self-healing script will automatically verify dependencies, install pnpm globally via npm if missing, run pnpm install, and boot up the local server.
+
+Linux / macOS: Ensure pnpm is installed (npm install -g pnpm), then from the project root run:
+
+Bash
+pnpm install
+pnpm start
 
 **Open the UI:**
 * After startup, open the manager in your browser at: `http://localhost:3000`
