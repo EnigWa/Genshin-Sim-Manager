@@ -18,9 +18,11 @@ var state = {
     currentBgTheme: localStorage.getItem('gcsim_bg') || 'default',
     currentTextTheme: localStorage.getItem('gcsim_text') || 'light-text',
     editorFontSize: parseInt(localStorage.getItem('gcsim_fontsize')) || 13,
-    autoOpenViewer: localStorage.getItem('gcsim_auto_open_viewer') === 'true',
+        autoOpenViewer: localStorage.getItem('gcsim_auto_open_viewer') === 'true',
     configDps: {},
-    sortMode: 'original'
+    sortMode: 'original',
+    expWindowMode: localStorage.getItem('gcsim_window_mode') === 'true'
+
 };
 
 var SECTION_NAMES = new Set([
@@ -175,6 +177,10 @@ function showSettingsModal() {
     document.getElementById('fontSizeSlider').value = state.editorFontSize;
     document.getElementById('fontSizeLabel').textContent = state.editorFontSize;
     document.getElementById('settingsModal').classList.add('show');
+        document.getElementById('expWindowMode').checked = state.expWindowMode;
+    document.querySelectorAll('#bgThemeGrid .theme-card').forEach(function(card) {
+        card.classList.toggle('active', card.getAttribute('data-bg-val') === state.currentBgTheme);
+    });
 }
 
 function showHelpModal() {
@@ -1331,6 +1337,7 @@ async function showResultsModal() {
                 <td><span style="padding: 2px 6px; border-radius: 3px; background: ${r.mode === 'Optimize' ? 'var(--bg-btn-opt)' : 'var(--bg-active)'}; font-size: 10px;">${r.mode}</span></td>
                 <td style="font-family: monospace; font-size: 14px; font-weight: bold; color: var(--toast-success-border);">${Math.round(r.dps).toLocaleString()}</td>
                 <td style="text-align:right;">
+                    <button class="action-btn" onclick="viewRunStatsForFile('${escapeHtml(r.filename)}')">Stats</button>
                     <button class="action-btn" onclick="openGcsimViewer('${escapeHtml(r.filename)}')">Open Viewer</button>
                 </td>
             `;
@@ -1446,7 +1453,7 @@ async function init() {
     applyBgTheme(state.currentBgTheme);
     applyTextTheme(state.currentTextTheme);
     applyFontSize(state.editorFontSize);
-    
+    applyWindowModeToAll();
     await loadSettings();
     await loadProjects();
 
@@ -1608,6 +1615,235 @@ function bindSyncScroll() {
             });
         });
     });
+}
+
+// ========== EXPERIMENTAL WINDOW MODE LOGIC ==========
+function onWindowModeChange() {
+    state.expWindowMode = document.getElementById('expWindowMode').checked;
+    localStorage.setItem('gcsim_window_mode', state.expWindowMode);
+    applyWindowModeToAll();
+    toast('Window mode ' + (state.expWindowMode ? 'enabled' : 'disabled'), 'info');
+}
+
+function applyWindowModeToAll() {
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        if (state.expWindowMode) {
+            overlay.classList.add('window-mode');
+        } else {
+            overlay.classList.remove('window-mode');
+        }
+    });
+    
+    document.querySelectorAll('.modal').forEach(modal => {
+        const header = modal.querySelector('.modal-header');
+        if (state.expWindowMode) {
+            modal.classList.add('window-mode-active');
+            if (header) header.onmousedown = dragMouseDown;
+        } else {
+            modal.classList.remove('window-mode-active');
+            modal.style.top = '';
+            modal.style.left = '';
+            modal.style.transform = '';
+            modal.style.width = '';
+            modal.style.height = '';
+            if (header) header.onmousedown = null;
+        }
+    });
+}
+
+function dragMouseDown(e) {
+    if (!state.expWindowMode) return;
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    e.preventDefault();
+    
+    const modal = e.currentTarget.parentElement;
+    
+    // Convert transform centering into hard-coded top/left coords relative to screen viewport
+    const rect = modal.getBoundingClientRect();
+    if (modal.style.transform !== 'none') {
+        modal.style.transform = 'none';
+        modal.style.top = rect.top + 'px';
+        modal.style.left = rect.left + 'px';
+    }
+
+    let pos1 = 0, pos2 = 0, pos3 = e.clientX, pos4 = e.clientY;
+    
+    document.onmouseup = closeDragElement;
+    document.onmousemove = elementDrag;
+
+    function elementDrag(e) {
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        let newTop = modal.offsetTop - pos2;
+        let newLeft = modal.offsetLeft - pos1;
+        if (newTop < 0) newTop = 0; // Prevent title bar from going off-screen
+        modal.style.top = newTop + "px";
+        modal.style.left = newLeft + "px";
+    }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+    }
+}
+
+// ========== CHARACTER STATS PANEL ==========
+async function viewCurrentRunStats() {
+    let filename = state.currentFile ? state.currentFile.name : null;
+    if (!filename) {
+        const activeItem = document.querySelector('.file-item.active');
+        if (activeItem) { const nameEl = activeItem.querySelector('.filename'); if (nameEl) filename = nameEl.textContent + '.txt'; }
+    }
+    if (!filename) { toast('Select a config from the sidebar first', 'error'); return; }
+    
+    // We need to look up the output JSON
+    let outFilename = filename.replace('.txt', '.json');
+    viewRunStatsForFile(outFilename);
+}
+
+async function viewRunStatsForFile(filename) {
+    if (!state.currentProject) return;
+    
+    // Allow it to fetch optimization outputs as well
+    let reqFilename = filename;
+    if (!reqFilename.endsWith('.json') && !reqFilename.endsWith('.json.gz')) {
+        reqFilename += '.json';
+    }
+
+    document.getElementById('statsModal').classList.add('show');
+    const container = document.getElementById('statsModalContent');
+    container.innerHTML = '<div style="padding: 20px; color: #aeb5be;">Loading stats...</div>';
+    document.getElementById('statsModalTitle').textContent = 'Character Stats - ' + filename;
+    
+    try {
+        let data = await api('GET', '/api/projects/' + encodeURIComponent(state.currentProject) + '/results/' + encodeURIComponent(reqFilename));
+        container.innerHTML = renderCharacterStats({ mainData: data, sampleData: null });
+        if (state.expWindowMode) applyWindowModeToAll(); // Reposition bounding box hooks if in window-mode 
+    } catch(e) {
+        container.innerHTML = `<div style="padding: 20px; color: var(--toast-error-border);">Failed to load stats: ${e.message}. Run a simulation first!</div>`;
+    }
+}
+
+function renderCharacterStats(obj) {
+    const chars = (obj.mainData && obj.mainData.character_details) || (obj.sampleData && obj.sampleData.character_details) || [];
+    if (!chars || chars.length === 0) return '<div style="padding: 20px; color: #aeb5be;">No character data found in this result.</div>';
+    
+    let html = `<div class="char-cards-container">`;
+    
+    const bonusNames = {
+        13: "Healing Bonus",
+        14: "Pyro DMG Bonus",
+        15: "Hydro DMG Bonus",
+        16: "Cryo DMG Bonus",
+        17: "Electro DMG Bonus",
+        18: "Anemo DMG Bonus",
+        19: "Geo DMG Bonus",
+        20: "Physical DMG Bonus",
+        21: "Dendro DMG Bonus"
+    };
+
+    // Parse debug logs to get the frame 0 stats which include Team Resonance
+    let eventsArr = null;
+    if (obj.mainData && obj.mainData.logs) eventsArr = obj.mainData.logs;
+    else if (obj.sampleData && obj.sampleData.logs) eventsArr = obj.sampleData.logs;
+    else if (obj.mainData && obj.mainData.debug) eventsArr = obj.mainData.debug;
+
+    function getFrame0Stats(charIndex) {
+        if (!eventsArr) return null;
+        for (let i = 0; i < eventsArr.length; i++) {
+            let ev = eventsArr[i];
+            if (ev.frame > 5) break; 
+            if (ev.event === "character" && (ev.char === charIndex || ev.char_index === charIndex) && ev.msg === "character stats") {
+                if (ev.logs && ev.logs.stats) return ev.logs.stats;
+                if (ev.stats) return ev.stats;
+            }
+        }
+        return null;
+    }
+
+    chars.forEach((char, index) => {
+        const cons = char.cons !== undefined ? char.cons : 0;
+        const lvl = char.level !== undefined ? char.level : 90;
+        const talents = char.talents || { attack: 9, skill: 9, burst: 9 };
+        const weapon = char.weapon || { name: 'Unknown Weapon', refine: 1, level: 90 };
+        
+        // Find stats array at frame 0 (best effort), otherwise fallback to base stats from artifact profile
+        let stats = getFrame0Stats(index) || char.stats || [];
+
+        // Correct gcsim math formula based on array indices
+        let hp = (stats[0] || 0) * (1 + (stats[1] || 0)) + (stats[2] || 0);
+        let atk = (stats[3] || 0) * (1 + (stats[4] || 0)) + (stats[5] || 0);
+        let def = (stats[6] || 0) * (1 + (stats[7] || 0)) + (stats[8] || 0);
+        let em = stats[9] || 0;
+        let er = (stats[10] || 0) * 100;
+        let cr = (stats[11] || 0) * 100;
+        let cd = (stats[12] || 0) * 100;
+        
+        let maxBonusIdx = -1;
+        let maxBonusVal = 0;
+        for (let i = 13; i <= 21; i++) {
+            let val = stats[i] || 0;
+            if (val > maxBonusVal) {
+                maxBonusVal = val;
+                maxBonusIdx = i;
+            }
+        }
+        
+        let dmgBonusHTML = '';
+        if (maxBonusIdx !== -1 && maxBonusVal > 0) {
+            dmgBonusHTML = `<div class="stat-row"><span><i class="stat-icon"></i> ${bonusNames[maxBonusIdx]}</span> <span>${(maxBonusVal * 100).toFixed(2)}%</span></div>`;
+        }
+
+        // Sets mapping
+        let setsStr = '';
+        if (char.sets && typeof char.sets === 'object') {
+            for (const [sName, sCount] of Object.entries(char.sets)) {
+                setsStr += `<div style="display:flex; align-items:center; gap:4px; margin-top:2px;">
+                                <div style="width:16px; height:16px; background:#4c566a; border-radius:50%; display:inline-block;"></div>
+                                <span style="font-size:10px; color:#aeb5be;">${sCount}</span>
+                            </div>`;
+            }
+        }
+
+        let charName = char.name ? char.name.charAt(0).toUpperCase() + char.name.slice(1) : 'Unknown';
+        let wName = weapon.name ? weapon.name.charAt(0).toUpperCase() + weapon.name.slice(1) : 'Unknown';
+
+        html += `
+        <div class="char-card">
+            <div class="char-header">
+                <div class="char-title">C${cons} ${escapeHtml(charName)}</div>
+                <div class="char-lvl">Lvl ${lvl}/90</div>
+                <div class="char-talents">Talents ${talents.attack}/${talents.skill}/${talents.burst}</div>
+                ${setsStr ? `<div class="char-sets" style="margin-top:6px; display:flex; gap:8px;">${setsStr}</div>` : ''}
+            </div>
+            <div class="char-weapon">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="width:24px; height:24px; background:#4c566a; border-radius:4px; flex-shrink:0;"></div>
+                    <div>
+                        <div style="font-weight:bold; font-size:12px; color:#eceff4;">${escapeHtml(wName)} R${weapon.refine}</div>
+                        <div style="color:#aeb5be; font-size:11px;">Lvl ${weapon.level}/90</div>
+                    </div>
+                </div>
+            </div>
+            <div class="char-stats">
+                <div class="stat-title">Total Stats (at 0 seconds, best effort basis)</div>
+                <div class="stat-row"><span><i class="stat-icon"></i> HP</span> <span>${Math.round(hp)}</span></div>
+                <div class="stat-row"><span><i class="stat-icon"></i> ATK</span> <span>${Math.round(atk)}</span></div>
+                <div class="stat-row"><span><i class="stat-icon"></i> DEF</span> <span>${Math.round(def)}</span></div>
+                <div class="stat-row"><span><i class="stat-icon"></i> Elemental Mastery</span> <span>${Math.round(em)}</span></div>
+                <div class="stat-row"><span><i class="stat-icon"></i> Energy Recharge</span> <span>${er.toFixed(2)}%</span></div>
+                <div class="stat-row"><span><i class="stat-icon"></i> CRIT Rate</span> <span>${cr.toFixed(2)}%</span></div>
+                <div class="stat-row"><span><i class="stat-icon"></i> CRIT DMG</span> <span>${cd.toFixed(2)}%</span></div>
+                ${dmgBonusHTML}
+            </div>
+        </div>`;
+    });
+    
+    html += `</div>`;
+    return html;
 }
 
 function renderSampleTimeline(obj) {

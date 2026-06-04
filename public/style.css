@@ -885,3 +885,86 @@
 .timeline-scroll-area::-webkit-scrollbar-track { background: #1e2227; }
 .timeline-scroll-area::-webkit-scrollbar-thumb { background: #4c566a; border-radius: 3px; }
 .timeline-scroll-area::-webkit-scrollbar-thumb:hover { background: #81a1c1; }
+
+/* Experimental Window Mode CSS */
+.modal-overlay.window-mode { display: none; }
+.modal-overlay.window-mode.show { display: block; }
+.modal.window-mode-active {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    transform: none;
+    resize: both;
+    overflow: hidden;
+    margin: 0 !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    transition: none !important;
+    max-width: 90vw;
+    max-height: 90vh;
+    min-width: 300px;
+    min-height: 200px;
+}
+.modal.window-mode-active .modal-header {
+    cursor: move;
+    user-select: none;
+}
+
+/* Character Stats Cards */
+.char-cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px;
+    background: #1e2227; /* Matches the main background */
+}
+.char-card {
+    flex: 1;
+    min-width: 260px;
+    background: #2b323f;
+    border: 1px solid #3b4252;
+    border-radius: 6px;
+    color: #d8dee9;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.char-header {
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #323d4f 0%, #2b323f 100%);
+    border-bottom: 1px solid #3b4252;
+    position: relative;
+}
+.char-title { font-size: 14px; font-weight: bold; color: #eceff4; margin-bottom: 4px; }
+.char-lvl, .char-talents { color: #aeb5be; margin-bottom: 2px; font-size: 11px; }
+
+.char-weapon {
+    padding: 12px 16px;
+    border-bottom: 1px solid #3b4252;
+    color: #eceff4;
+    background: #242a35;
+}
+.char-stats {
+    padding: 12px 16px;
+    background: #2b323f;
+}
+.stat-title {
+    font-weight: bold;
+    color: #eceff4;
+    margin-bottom: 12px;
+    font-size: 11px;
+}
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+.stat-row span:first-child { color: #eceff4; display: flex; align-items: center; gap: 6px; }
+.stat-row span:last-child { color: #eceff4; font-family: 'Consolas', monospace; }
+.stat-icon {
+    display: inline-block;
+    width: 14px; height: 14px;
+    background: #4c566a;
+    border-radius: 50%;
+}

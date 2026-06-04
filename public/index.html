@@ -79,6 +79,7 @@
                 <button class="btn-danger" onclick="terminateProcesses()">&#9632; Stop</button>
                 <div class="toolbar-divider"></div>
                 <button class="btn-secondary" onclick="validateSelected()" style="margin-right: 8px;">&#10004; Validate</button>
+                <!-- <button class="btn-secondary" onclick="viewCurrentRunStats()" style="margin-right: 8px;">&#128100; Stats</button> -->
                 <button style="background: var(--bg-active);" onclick="showResultsModal()">&#128202; Results</button>
                 <div class="toolbar-divider"></div>
                 <button class="btn-settings" onclick="showSettingsModal()" title="Settings">&#9881;</button>
@@ -250,6 +251,13 @@
                     <span id="fontSizeLabel" style="font-size:13px;color:var(--text-primary);min-width:32px;text-align:center;">13</span>
                 </div>
             </div>
+            <div class="settings-section" style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <h4>Experimental</h4>
+                <label style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="expWindowMode" onchange="onWindowModeChange()" style="cursor: pointer; accent-color: var(--bg-btn-primary);">
+                    Enable Window Mode for Modals (Movable & Resizable)
+                </label>
+            </div>
             <div class="settings-section" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-bottom: 0; margin-top: 12px;">
                 <p style="font-size: 11px; color: var(--text-muted); text-align: center;">Created by @enigwa and @Symphonist on Discord — feel free to message @enigwa if you have any questions!</p>
             </div>
@@ -370,7 +378,18 @@
         </div>
     </div>
 </div>
-
+<!-- STATS MODAL -->
+<div class="modal-overlay" id="statsModal">
+    <div class="modal modal-wide" style="width: 1060px; max-width: 95vw;">
+        <div class="modal-header">
+            <h3 id="statsModalTitle">Character Stats</h3>
+            <button onclick="closeModal('statsModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="statsModalContent" style="padding: 0; background: #1e2227; overflow-x: auto;">
+            <!-- Stats cards will go here -->
+        </div>
+    </div>
+</div>
 <!-- NATIVE VIEWER MODAL -->
 <div class="modal-overlay" id="sampleModal">
     <div class="modal" style="width: 95vw; height: 95vh; max-width: none; position: relative; display: flex; flex-direction: column;">
